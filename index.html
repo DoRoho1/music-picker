@@ -419,7 +419,7 @@ function saveLikes() {
 }
 
 /* ---------- 선택지 ---------- */
-document.querySelectorAll(".chips").forEach(el => {
+document.querySelectorAll(".chips[data-key]").forEach(el => {
   const key = el.dataset.key;
   OPTIONS[key].forEach(item => {
     const b = document.createElement("button");
