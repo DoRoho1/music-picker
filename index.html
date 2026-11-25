@@ -4,6 +4,17 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>오늘은 뭘 들을까</title>
+<meta name="description" content="날씨, 기분, 시간, 하는 일을 고르면 지금 어울리는 음악 장르와 곡을 골라드려요.">
+<meta name="theme-color" content="#121820">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="오늘은 뭘 들을까">
+<meta property="og:title" content="오늘은 뭘 들을까 🎧">
+<meta property="og:description" content="날씨, 기분, 시간, 하는 일을 고르면 지금 어울리는 음악 장르와 곡을 골라드려요.">
+<meta property="og:url" content="https://music-picker-39m5.vercel.app/">
+<meta property="og:image" content="https://music-picker-39m5.vercel.app/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎧</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -79,7 +90,7 @@ legend { font-size: 1.05rem; margin-bottom: .6rem; padding: 0; }
 .result.show { display: grid; }
 @media (max-width: 560px) {
   .result.show { grid-template-columns: 1fr; }
-  .disc-wrap { width: 9.5rem; }
+  .result .disc-wrap { width: 9.5rem; }
 }
 .disc-wrap { width: 100%; aspect-ratio: 1; }
 .disc {
@@ -90,7 +101,7 @@ legend { font-size: 1.05rem; margin-bottom: .6rem; padding: 0; }
   box-shadow: 0 1rem 2rem -1rem rgba(0,0,0,.45);
 }
 .disc::after { content: ""; position: absolute; inset: 47.5%; border-radius: 50%; background: var(--bg); }
-.disc.spin { animation: spin 3.2s linear infinite; }
+.disc.spin { animation: spin 1.6s cubic-bezier(.2, .6, .3, 1) 1; }
 @keyframes spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .disc.spin { animation: none; } }
 
@@ -107,36 +118,24 @@ legend { font-size: 1.05rem; margin-bottom: .6rem; padding: 0; }
 .desc { color: var(--muted); margin: 0 0 1.25rem; max-width: 34rem; }
 h3 { font-size: 1rem; margin: 0 0 .4rem; }
 .picks { list-style: none; padding: 0; margin: 0 0 1.25rem; }
-.picks li { padding: .45rem 0; border-bottom: 1px solid var(--line); }
+.picks li { display: flex; align-items: center; gap: .25rem; border-bottom: 1px solid var(--line); }
 .picks li:last-child { border-bottom: 0; }
-.picks li { padding: 0; }
 .song {
   font: inherit; color: var(--ink); background: none; border: 0; cursor: pointer; text-align: left;
-  display: flex; align-items: center; gap: .75rem; width: 100%; padding: .55rem .25rem; border-radius: .4rem;
+  display: flex; align-items: center; gap: .75rem; flex: 1; min-width: 0; padding: .55rem .25rem; border-radius: .4rem;
 }
+.song-like {
+  flex: none; width: 2.5rem; height: 2.5rem; border-radius: 50%; cursor: pointer;
+  font: inherit; font-size: 1.2rem; line-height: 1; color: var(--heart); background: none; border: 0;
+}
+.song-like:hover { background: var(--surface); }
+.song-like:focus-visible { outline: 3px solid var(--heart); outline-offset: 1px; }
 .song:hover { background: var(--surface); }
 .song:focus-visible { outline: 3px solid var(--label); outline-offset: 1px; }
 .play-icon {
   flex: none; width: 2rem; height: 2rem; border-radius: 50%; display: grid; place-items: center;
   background: var(--label); color: #fff; font-size: .75rem;
 }
-.player {
-  position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
-  display: flex; align-items: center; gap: 1rem;
-  background: var(--surface); border-top: 1px solid var(--line);
-  padding: .75rem 1rem calc(.75rem + env(safe-area-inset-bottom, 0px));
-  box-shadow: 0 -.5rem 1.5rem -1rem rgba(0,0,0,.4);
-}
-.player-frame { flex: none; width: 10rem; aspect-ratio: 16 / 9; border-radius: .4rem; overflow: hidden; background: var(--disc); }
-.player-frame:empty { display: none; }
-.player-frame iframe { width: 100%; height: 100%; border: 0; display: block; }
-.player-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: .15rem; }
-.player-info strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.player-msg { color: var(--muted); font-size: .85rem; }
-.player-msg:empty { display: none; }
-.player-info a { color: var(--muted); font-size: .85rem; }
-body.has-player main { padding-bottom: 10rem; }
-@media (max-width: 480px) { .player-frame { width: 7.5rem; } }
 .gem {
   display: inline-block; font-size: .75rem; color: var(--label); border: 1px solid var(--label);
   border-radius: 999px; padding: 0 .5rem; margin-left: .25rem; vertical-align: .1em; white-space: nowrap;
@@ -148,6 +147,22 @@ body.has-player main { padding-bottom: 10rem; }
 }
 .search span { flex: 1 1 12rem; }
 .also { color: var(--muted); font-size: .92rem; margin: 0 0 1.25rem; }
+.also button {
+  font: inherit; color: var(--ink); background: none; border: 0; padding: .2rem 0; cursor: pointer;
+  text-decoration: underline; text-decoration-color: var(--label); text-underline-offset: .25em;
+}
+.also button:focus-visible { outline: 3px solid var(--label); outline-offset: 2px; }
+.result-actions { display: flex; align-items: center; gap: .5rem 1rem; flex-wrap: wrap; }
+.weather-auto { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; margin-top: .6rem; }
+h2.sub { font-size: 1.1rem; font-weight: 400; color: var(--muted); margin: 0 0 .25rem; }
+h2.sub + .likes-list { margin-bottom: 2rem; }
+h2.sub + .likes-list:empty { margin-bottom: 0; }
+h2.sub + .likes-list + .empty { padding: .75rem 0 2rem; }
+.likes-list .song-name {
+  font: inherit; font-size: 1.05rem; color: var(--ink); background: none; border: 0; padding: 0;
+  cursor: pointer; text-align: left; display: block; line-height: 1.35;
+}
+.likes-list .song-name:hover { text-decoration: underline; }
 .note { color: var(--muted); font-size: .82rem; margin-top: 1.5rem; }
 
 .likes-list { list-style: none; padding: 0; margin: 0; }
@@ -167,7 +182,6 @@ body.has-player main { padding-bottom: 10rem; }
 }
 .genre-card:hover { border-color: var(--c); }
 .genre-card:focus-visible { outline: 3px solid var(--c); outline-offset: 2px; }
-.genre-card .dot { display: none; }
 .gc-name { font-size: 1.2rem; line-height: 1.25; }
 .gc-meta { color: var(--muted); font-size: .85rem; }
 [hidden] { display: none !important; }
@@ -185,11 +199,14 @@ body.has-player main { padding-bottom: 10rem; }
   </nav>
 
   <section id="view-pick">
-    <fieldset><legend>바깥 날씨는?</legend><div class="chips" data-key="weather"></div></fieldset>
+    <fieldset><legend>바깥 날씨는?</legend><div class="chips" data-key="weather"></div>
+      <div class="weather-auto"><button class="btn ghost small" type="button" id="locate">📍 지금 날씨로 고르기</button><span class="hint" id="weather-hint" aria-live="polite"></span></div>
+    </fieldset>
     <fieldset><legend>지금 기분은?</legend><div class="chips" data-key="mood"></div></fieldset>
     <fieldset><legend>지금 시간대는?</legend><div class="chips" data-key="time"></div></fieldset>
     <fieldset><legend>지금 뭐 하고 있어요?</legend><div class="chips" data-key="act"></div></fieldset>
     <fieldset><legend>취향</legend><div class="chips"><button class="chip" type="button" id="kpop" aria-pressed="false">🇰🇷 케이팝 많이</button></div></fieldset>
+    <fieldset><legend>어디서 들을까요?</legend><div class="chips" id="services"></div></fieldset>
 
     <div class="go">
       <button class="btn" id="pick" disabled>장르 추천받기</button>
@@ -211,10 +228,15 @@ body.has-player main { padding-bottom: 10rem; }
         <button class="btn ghost small" id="more" style="margin:-.5rem 0 1.25rem">다른 곡 보기</button>
         <div class="search">
           <span>검색해볼 말: <strong id="kw"></strong></span>
+          <button class="btn ghost small" id="search-go">검색하기</button>
           <button class="btn ghost small" id="copy">복사하기</button>
         </div>
         <p class="also" id="also"></p>
-        <button class="btn ghost" id="again">다른 장르 보기</button>
+        <div class="result-actions">
+          <button class="btn ghost" id="again">다른 장르 보기</button>
+          <button class="btn ghost" id="share">결과 공유하기</button>
+          <span class="hint" id="share-msg" aria-live="polite"></span>
+        </div>
       </div>
     </section>
   </section>
@@ -225,21 +247,15 @@ body.has-player main { padding-bottom: 10rem; }
   </section>
 
   <section id="view-likes" hidden>
+    <h2 class="sub">좋아하는 장르</h2>
     <ul class="likes-list" id="likes-list"></ul>
     <p class="empty" id="likes-empty">아직 좋아요한 장르가 없어요. 추천받기에서 마음에 드는 장르에 ♡를 눌러보세요.</p>
+    <h2 class="sub">좋아하는 곡</h2>
+    <ul class="likes-list" id="song-likes-list"></ul>
+    <p class="empty" id="song-likes-empty">아직 좋아요한 곡이 없어요. 추천 곡 옆의 ♡를 눌러보세요.</p>
   </section>
 
-  <div class="player" id="player" hidden>
-    <div class="player-frame" id="player-frame"></div>
-    <div class="player-info">
-      <strong id="player-title"></strong>
-      <span class="player-msg" id="player-msg"></span>
-      <a id="player-yt" target="_blank" rel="noopener">유튜브에서 열기</a>
-    </div>
-    <button class="btn ghost small" id="player-close" aria-label="플레이어 닫기">닫기</button>
-  </div>
-
-  <p class="note">좋아요 목록은 지금 쓰는 브라우저에만 저장돼요. 다른 기기나 다른 브라우저에서는 보이지 않아요.</p>
+  <p class="note">좋아요 목록과 듣는 곳 설정은 지금 쓰는 브라우저에만 저장돼요. 다른 기기나 다른 브라우저에서는 보이지 않아요.</p>
 </main>
 
 <script>
@@ -420,19 +436,55 @@ const GENRES = [
 
 const KEYS = ["weather", "mood", "time", "act"];
 const LABEL_KEY = { weather: "w", mood: "m", time: "t", act: "a" };
+const WEIGHTS = { weather: 1.0, mood: 1.3, time: 0.7, act: 1.1 };
 const STORE = "genre-likes-v1";
-const state = { kpop: false, weather: null, mood: null, time: null, act: null, current: null, lastName: null };
+const SONG_STORE = "song-likes-v1";
+const SVC_STORE = "music-service-v1";
+const SITE = "https://music-picker-39m5.vercel.app/";
+const state = { kpop: false, weather: null, mood: null, time: null, act: null, current: null, lastName: null, manual: false, seen: {} };
 const $ = id => document.getElementById(id);
+const reduceMotion = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+function shuffle(a) {
+  const b = [...a];
+  for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; }
+  return b;
+}
 
 /* ---------- 저장소 ---------- */
-function loadLikes() {
-  try { const v = JSON.parse(localStorage.getItem(STORE)); return Array.isArray(v) ? v : []; }
+function loadList(key) {
+  try { const v = JSON.parse(localStorage.getItem(key)); return Array.isArray(v) ? v : []; }
   catch (e) { return []; }
 }
-let likes = loadLikes();
-function saveLikes() {
-  try { localStorage.setItem(STORE, JSON.stringify(likes)); } catch (e) {}
-  renderLikes();
+function storeList(key, v) { try { localStorage.setItem(key, JSON.stringify(v)); } catch (e) {} }
+let likes = loadList(STORE);
+let songLikes = loadList(SONG_STORE);
+function saveLikes() { storeList(STORE, likes); storeList(SONG_STORE, songLikes); renderLikes(); }
+
+/* ---------- 듣는 곳 ---------- */
+const SERVICES = [
+  { id: "yt",      label: "유튜브",      url: q => "https://www.youtube.com/results?search_query=" + encodeURIComponent(q) },
+  { id: "ytm",     label: "유튜브 뮤직", url: q => "https://music.youtube.com/search?q=" + encodeURIComponent(q) },
+  { id: "melon",   label: "멜론",        url: q => "https://www.melon.com/search/total/index.htm?q=" + encodeURIComponent(q) },
+  { id: "spotify", label: "스포티파이",  url: q => "https://open.spotify.com/search/" + encodeURIComponent(q) }
+];
+let service = "yt";
+try { service = localStorage.getItem(SVC_STORE) || "yt"; } catch (e) {}
+if (!SERVICES.some(s => s.id === service)) service = "yt";
+function searchQuery(p) { return p.replace("–", " ").replace(/[()~]/g, " ").replace(/\s+/g, " ").trim(); }
+function openSearch(q) { window.open(SERVICES.find(s => s.id === service).url(q), "_blank", "noopener"); }
+function renderServices() {
+  const el = $("services"); el.innerHTML = "";
+  SERVICES.forEach(s => {
+    const b = document.createElement("button");
+    b.className = "chip"; b.type = "button"; b.textContent = s.label;
+    b.setAttribute("aria-pressed", String(s.id === service));
+    b.addEventListener("click", () => {
+      service = s.id;
+      try { localStorage.setItem(SVC_STORE, service); } catch (e) {}
+      renderServices();
+    });
+    el.appendChild(b);
+  });
 }
 
 /* ---------- 선택지 ---------- */
@@ -453,7 +505,6 @@ function select(key, id) {
   if (key === "weather") tint();
   updateButton();
 }
-// 지금 시각으로 시간대 미리 골라두기
 
 function isDark() {
   const t = document.documentElement.getAttribute("data-theme");
@@ -472,10 +523,41 @@ function updateButton() {
   $("hint").textContent = missing.length ? `${missing.join(", ")}을(를) 골라주세요.` : "";
 }
 
+/* ---------- 지금 날씨 (Open-Meteo, 키 필요 없음) ---------- */
+function weatherFromCode(code, temp) {
+  let id = "sun";
+  if ([71, 73, 75, 77, 85, 86].includes(code)) id = "snow";
+  else if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82) || code >= 95) id = "rain";
+  else if (code >= 2) id = "cloud";
+  if (id === "sun" || id === "cloud") {
+    if (temp >= 28) id = "hot";
+    else if (temp <= 8) id = "cold";
+  }
+  return id;
+}
+$("locate").addEventListener("click", () => {
+  const hint = $("weather-hint");
+  if (!navigator.geolocation) { hint.textContent = "이 브라우저에서는 위치를 쓸 수 없어요."; return; }
+  hint.textContent = "날씨 확인 중…";
+  navigator.geolocation.getCurrentPosition(async pos => {
+    try {
+      const { latitude, longitude } = pos.coords;
+      const url = "https://api.open-meteo.com/v1/forecast?latitude=" + latitude.toFixed(2) +
+        "&longitude=" + longitude.toFixed(2) + "&current=temperature_2m,weather_code";
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("api");
+      const cur = (await res.json()).current;
+      const id = weatherFromCode(cur.weather_code, cur.temperature_2m);
+      select("weather", id);
+      hint.textContent = `지금 ${Math.round(cur.temperature_2m)}°C · ${OPTIONS.weather.find(x => x.id === id).label}`;
+    } catch (e) { hint.textContent = "날씨를 불러오지 못했어요. 직접 골라주세요."; }
+  }, () => { hint.textContent = "위치를 허용하지 않아서 날씨를 가져오지 못했어요."; },
+  { timeout: 10000, maximumAge: 600000 });
+});
+
 /* ---------- 추천 ---------- */
 function score(g) {
-  return (g.w[state.weather] || 0) * 1.0 + (g.m[state.mood] || 0) * 1.3 +
-         (g.t[state.time] || 0) * 0.7 + (g.a[state.act] || 0) * 1.1 +
+  return KEYS.reduce((s, k) => s + (g[LABEL_KEY[k]][state[k]] || 0) * WEIGHTS[k], 0) +
          (state.kpop && g.k ? 2.2 : 0);
 }
 function ranked() {
@@ -483,115 +565,115 @@ function ranked() {
     .sort((a, b) => b.s - a.s).map(x => x.g);
 }
 function bestReason(g) {
-  const weights = { weather: 1.0, mood: 1.3, time: 0.7, act: 1.1 };
   let best = "mood", bestVal = -1;
   KEYS.forEach(k => {
-    const v = (g[LABEL_KEY[k]][state[k]] || 0) * weights[k];
+    const v = (g[LABEL_KEY[k]][state[k]] || 0) * WEIGHTS[k];
     if (v > bestVal) { bestVal = v; best = k; }
   });
   return REASONS[best][state[best]];
 }
 function ready() { return KEYS.every(k => state[k]); }
 function situation() {
-  if (!ready()) return "직접 고른 장르";
   const f = k => OPTIONS[k].find(x => x.id === state[k]).adj;
   return `${f("weather")} ${f("time")}, ${f("mood")}으로 ${f("act")}`;
+}
+// 이 장르 말고 어울리는 다른 장르들 (조건을 다 골랐으면 점수순, 아니면 무작위)
+function othersFor(g) {
+  return (ready() ? ranked() : shuffle(GENRES)).filter(x => x !== g);
 }
 function recommend() {
   let list = ranked();
   if (list[0].name === state.lastName) list = [list[1], list[0], ...list.slice(2)];
-  state.lastName = list[0].name;
   showGenre(list[0], list.slice(1), false);
 }
 
 function showGenre(g, others, manual) {
-  state.current = g;
+  state.current = g; state.lastName = g.name; state.manual = manual;
   $("situ").textContent = manual ? "직접 고른 장르" : situation();
   $("genre").textContent = g.name;
   $("reason").textContent = manual ? "" : bestReason(g);
   $("reason").hidden = manual;
   $("desc").textContent = g.desc;
+  state.seen[g.name] = [];
   renderPicks(g);
   $("kw").textContent = g.kw;
   $("copy").textContent = "복사하기";
-  $("also").textContent = `이것도 어울려요: ${others[0].name}, ${others[1].name}`;
+  $("share-msg").textContent = "";
+  renderAlso(others.slice(0, 2));
   document.documentElement.style.setProperty("--label", g.color);
   updateLikeButton();
 
   const r = $("result");
   r.classList.add("show");
-  $("disc").classList.add("spin");
-  r.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+  const disc = $("disc");
+  disc.classList.remove("spin"); void disc.offsetWidth; disc.classList.add("spin");
+  r.scrollIntoView({ behavior: reduceMotion() ? "auto" : "smooth", block: "start" });
 }
 
+function renderAlso(list) {
+  const p = $("also");
+  p.textContent = "이것도 어울려요: ";
+  list.forEach((g, i) => {
+    if (i) p.append(", ");
+    const b = document.createElement("button");
+    b.type = "button"; b.textContent = g.name;
+    b.addEventListener("click", () => showGenre(g, othersFor(g), state.manual));
+    p.appendChild(b);
+  });
+}
+
+// 방금 보여준 곡은 빼고 고르기. 다 한 번씩 보여줬으면 처음부터 다시.
+function takeFresh(pool, n, seen) {
+  const out = [...shuffle(pool.filter(p => !seen.includes(p))), ...shuffle(pool.filter(p => seen.includes(p)))].slice(0, n);
+  out.forEach(p => { if (!seen.includes(p)) seen.push(p); });
+  if (pool.every(p => seen.includes(p))) {
+    pool.forEach(p => { if (!out.includes(p)) seen.splice(seen.indexOf(p), 1); });
+  }
+  return out;
+}
 function renderPicks(g) {
-  const ul = $("picks"); ul.innerHTML = "";
-  const shuffle = a => [...a].sort(() => Math.random() - 0.5);
   const gems = g.gems || [];
-  const chosen = shuffle(g.picks).slice(0, gems.length ? 3 : 4).map(p => ({ p, gem: false }));
-  if (gems.length) chosen.push({ p: shuffle(gems)[0], gem: true });
+  const seen = state.seen[g.name] || (state.seen[g.name] = []);
+  const chosen = takeFresh(g.picks, gems.length ? 3 : 4, seen).map(p => ({ p, gem: false }));
+  if (gems.length) chosen.push(...takeFresh(gems, 1, seen).map(p => ({ p, gem: true })));
+
+  const ul = $("picks"); ul.innerHTML = "";
   chosen.forEach(({ p, gem }) => {
     const li = document.createElement("li");
     const btn = document.createElement("button");
     btn.type = "button"; btn.className = "song";
-    btn.setAttribute("aria-label", `${p} 재생`);
+    btn.setAttribute("aria-label", `${p} 듣기`);
     const icon = document.createElement("span"); icon.className = "play-icon"; icon.textContent = "▶";
     const t = document.createElement("span"); t.textContent = p;
     if (gem) { const b = document.createElement("span"); b.className = "gem"; b.textContent = "숨은 명곡"; t.append(" ", b); }
     btn.append(icon, t);
-    btn.addEventListener("click", () => playSong(p));
-    li.appendChild(btn); ul.appendChild(li);
+    btn.addEventListener("click", () => openSearch(searchQuery(p)));
+
+    const heart = document.createElement("button");
+    heart.type = "button"; heart.className = "song-like";
+    const sync = () => {
+      const on = isSongLiked(p);
+      heart.textContent = on ? "♥" : "♡";
+      heart.setAttribute("aria-pressed", String(on));
+      heart.setAttribute("aria-label", `${p} 좋아요`);
+    };
+    sync();
+    heart.addEventListener("click", () => { toggleSong(p, g); sync(); });
+
+    li.append(btn, heart);
+    ul.appendChild(li);
   });
   $("more").hidden = g.picks.length + gems.length <= 4;
 }
 
-/* ---------- 재생 ---------- */
-// 유튜브 API 키를 넣으면 사이트 안에서 바로 재생돼요. 비워두면 유튜브 검색 창이 새로 열려요.
-const YT_API_KEY = "";
-const ID_CACHE = "genre-video-ids-v1";
-function searchQuery(p) { return p.replace("–", "").replace(/[()~]/g, " ").replace(/\s+/g, " ").trim(); }
-function searchUrl(p) { return "https://www.youtube.com/results?search_query=" + encodeURIComponent(searchQuery(p)); }
-function loadIds() { try { return JSON.parse(localStorage.getItem(ID_CACHE)) || {}; } catch (e) { return {}; } }
-function saveId(p, id) { const c = loadIds(); c[p] = id; try { localStorage.setItem(ID_CACHE, JSON.stringify(c)); } catch (e) {} }
-
-async function playSong(p) {
-  if (!YT_API_KEY) { window.open(searchUrl(p), "_blank", "noopener"); return; }
-  showPlayer(p, null, "불러오는 중…");
-  try {
-    let id = loadIds()[p];
-    if (!id) {
-      const url = "https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoEmbeddable=true&maxResults=1&q="
-        + encodeURIComponent(searchQuery(p)) + "&key=" + YT_API_KEY;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error("api");
-      const data = await res.json();
-      id = data.items && data.items[0] && data.items[0].id.videoId;
-      if (!id) throw new Error("none");
-      saveId(p, id);
-    }
-    showPlayer(p, id, "");
-  } catch (e) {
-    showPlayer(p, null, "여기서 재생할 수 없는 곡이에요. 유튜브에서 열어보세요.");
-  }
-}
-function showPlayer(p, id, msg) {
-  $("player").hidden = false;
-  document.body.classList.add("has-player");
-  $("player-title").textContent = p;
-  $("player-msg").textContent = msg;
-  $("player-yt").href = searchUrl(p);
-  $("player-frame").innerHTML = id
-    ? `<iframe src="https://www.youtube.com/embed/${id}?autoplay=1&playsinline=1" title="${p.replace(/"/g, "&quot;")}" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>`
-    : "";
-}
-function closePlayer() {
-  $("player").hidden = true;
-  $("player-frame").innerHTML = "";
-  document.body.classList.remove("has-player");
-}
-
 /* ---------- 좋아요 ---------- */
 function isLiked(name) { return likes.some(l => l.name === name); }
+function isSongLiked(p) { return songLikes.some(s => s.song === p); }
+function toggleSong(p, g) {
+  if (isSongLiked(p)) songLikes = songLikes.filter(s => s.song !== p);
+  else songLikes.unshift({ song: p, genre: g.name, color: g.color, date: new Date().toISOString() });
+  saveLikes();
+}
 function updateLikeButton() {
   const on = state.current && isLiked(state.current.name);
   $("like").setAttribute("aria-pressed", String(!!on));
@@ -600,31 +682,85 @@ function updateLikeButton() {
 $("like").addEventListener("click", () => {
   const g = state.current; if (!g) return;
   if (isLiked(g.name)) likes = likes.filter(l => l.name !== g.name);
-  else likes.unshift({ name: g.name, color: g.color, when: situation(), date: new Date().toISOString() });
+  else likes.unshift({ name: g.name, color: g.color, when: state.manual ? "직접 고른 장르" : situation(), date: new Date().toISOString() });
   saveLikes(); updateLikeButton();
 });
 
+function dateLabel(iso) { const d = new Date(iso); return `${d.getMonth() + 1}월 ${d.getDate()}일`; }
+function likeRow(color, nameEl, metaText, label, onDelete) {
+  const li = document.createElement("li");
+  const dot = document.createElement("span"); dot.className = "dot"; dot.style.background = color;
+  const info = document.createElement("div");
+  const meta = document.createElement("span"); meta.className = "meta"; meta.textContent = metaText;
+  info.append(nameEl, meta);
+  const del = document.createElement("button");
+  del.className = "btn ghost small"; del.textContent = "삭제";
+  del.setAttribute("aria-label", `${label} 좋아요 삭제`);
+  del.addEventListener("click", onDelete);
+  li.append(dot, info, del);
+  return li;
+}
 function renderLikes() {
-  $("like-count").textContent = likes.length ? `♥ ${likes.length}` : "";
+  const total = likes.length + songLikes.length;
+  $("like-count").textContent = total ? `♥ ${total}` : "";
+
   const ul = $("likes-list"); ul.innerHTML = "";
   $("likes-empty").hidden = likes.length > 0;
   likes.forEach(l => {
-    const g = GENRES.find(x => x.name === l.name);
-    const li = document.createElement("li");
-    const dot = document.createElement("span"); dot.className = "dot"; dot.style.background = l.color;
-    const info = document.createElement("div");
     const name = document.createElement("span"); name.className = "name display"; name.textContent = l.name;
-    const d = new Date(l.date);
-    const meta = document.createElement("span"); meta.className = "meta";
-    meta.textContent = `${d.getMonth() + 1}월 ${d.getDate()}일 · ${l.when}` + (g ? ` · ${g.picks[0]}` : "");
-    info.append(name, meta);
-    const del = document.createElement("button");
-    del.className = "btn ghost small"; del.textContent = "삭제";
-    del.setAttribute("aria-label", `${l.name} 좋아요 삭제`);
-    del.addEventListener("click", () => { likes = likes.filter(x => x.name !== l.name); saveLikes(); updateLikeButton(); });
-    li.append(dot, info, del);
-    ul.appendChild(li);
+    ul.appendChild(likeRow(l.color, name, `${dateLabel(l.date)} · ${l.when}`, l.name, () => {
+      likes = likes.filter(x => x.name !== l.name); saveLikes(); updateLikeButton();
+    }));
   });
+
+  const su = $("song-likes-list"); su.innerHTML = "";
+  $("song-likes-empty").hidden = songLikes.length > 0;
+  songLikes.forEach(s => {
+    const name = document.createElement("button");
+    name.type = "button"; name.className = "song-name"; name.textContent = s.song;
+    name.addEventListener("click", () => openSearch(searchQuery(s.song)));
+    su.appendChild(likeRow(s.color, name, `${dateLabel(s.date)} · ${s.genre}`, s.song, () => {
+      songLikes = songLikes.filter(x => x.song !== s.song); saveLikes();
+      if (state.current) renderPicksHearts();
+    }));
+  });
+}
+// 좋아요 목록에서 지운 곡이 추천 화면에도 바로 반영되게
+function renderPicksHearts() {
+  document.querySelectorAll("#picks li").forEach(li => {
+    const p = li.querySelector(".song").getAttribute("aria-label").replace(/ 듣기$/, "");
+    const h = li.querySelector(".song-like"); const on = isSongLiked(p);
+    h.textContent = on ? "♥" : "♡"; h.setAttribute("aria-pressed", String(on));
+  });
+}
+
+/* ---------- 결과 공유 ---------- */
+function shareUrl() {
+  const base = location.protocol.startsWith("http") ? location.origin + location.pathname : SITE;
+  const u = new URL(base);
+  u.searchParams.set("g", state.current.name);
+  if (!state.manual) KEYS.forEach(k => u.searchParams.set(k, state[k]));
+  return u.toString();
+}
+$("share").addEventListener("click", async () => {
+  const g = state.current; if (!g) return;
+  const text = state.manual ? `오늘은 ${g.name} 어때요? 🎧` : `${situation()} → ${g.name} 🎧`;
+  const url = shareUrl();
+  if (navigator.share) {
+    try { await navigator.share({ title: "오늘은 뭘 들을까", text, url }); return; }
+    catch (e) { if (e.name === "AbortError") return; }
+  }
+  try { await navigator.clipboard.writeText(`${text}\n${url}`); $("share-msg").textContent = "링크를 복사했어요."; }
+  catch (e) { $("share-msg").textContent = url; }
+});
+// 공유받은 링크로 들어오면 그 결과를 바로 보여주기
+function openShared() {
+  const q = new URLSearchParams(location.search);
+  const g = GENRES.find(x => x.name === q.get("g"));
+  if (!g) return;
+  KEYS.forEach(k => { const v = q.get(k); if (OPTIONS[k].some(o => o.id === v)) select(k, v); });
+  history.replaceState(null, "", location.pathname + location.hash);
+  showGenre(g, othersFor(g), !ready());
 }
 
 /* ---------- 탭 ---------- */
@@ -644,13 +780,12 @@ function renderGrid() {
     const b = document.createElement("button");
     b.type = "button"; b.className = "genre-card";
     b.style.setProperty("--c", g.color);
-    const n = g.picks.length + (g.gems || []).length;
-    b.innerHTML = `<span class="dot"></span><span class="gc-name display"></span><span class="gc-meta">${n}곡</span>`;
-    b.querySelector(".gc-name").textContent = g.name;
+    const name = document.createElement("span"); name.className = "gc-name display"; name.textContent = g.name;
+    const meta = document.createElement("span"); meta.className = "gc-meta"; meta.textContent = `${g.picks.length + (g.gems || []).length}곡`;
+    b.append(name, meta);
     b.addEventListener("click", () => {
-      state.lastName = g.name;
       location.hash = "#pick";
-      showGenre(g, GENRES.filter(x => x !== g).sort(() => Math.random() - 0.5), true);
+      showGenre(g, othersFor(g), true);
     });
     grid.appendChild(b);
   });
@@ -664,13 +799,10 @@ $("kpop").addEventListener("click", () => {
 $("pick").addEventListener("click", recommend);
 $("again").addEventListener("click", () => {
   if (ready()) recommend();
-  else {
-    const others = GENRES.filter(x => x !== state.current).sort(() => Math.random() - 0.5);
-    showGenre(others[0], others.slice(1), true);
-  }
+  else { const o = shuffle(GENRES.filter(x => x !== state.current)); showGenre(o[0], o.slice(1), true); }
 });
-$("player-close").addEventListener("click", closePlayer);
 $("more").addEventListener("click", () => state.current && renderPicks(state.current));
+$("search-go").addEventListener("click", () => openSearch($("kw").textContent));
 $("copy").addEventListener("click", async () => {
   try { await navigator.clipboard.writeText($("kw").textContent); $("copy").textContent = "복사됨"; }
   catch (e) {
@@ -680,7 +812,7 @@ $("copy").addEventListener("click", async () => {
   }
 });
 
-updateButton(); renderLikes(); renderGrid(); route();
+updateButton(); renderServices(); renderLikes(); renderGrid(); route(); openShared();
 </script>
 </body>
 </html>
