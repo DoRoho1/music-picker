@@ -159,6 +159,17 @@ body.has-player main { padding-bottom: 10rem; }
 .likes-list .name { font-size: 1.25rem; display: block; line-height: 1.2; }
 .likes-list .meta { color: var(--muted); font-size: .88rem; }
 .empty { color: var(--muted); padding: 2rem 0; }
+.genre-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr)); gap: .75rem; }
+.genre-card {
+  font: inherit; color: var(--ink); text-align: left; cursor: pointer;
+  background: var(--surface); border: 1px solid var(--line); border-left: 6px solid var(--c);
+  border-radius: .6rem; padding: .9rem 1rem; display: flex; flex-direction: column; gap: .2rem;
+}
+.genre-card:hover { border-color: var(--c); }
+.genre-card:focus-visible { outline: 3px solid var(--c); outline-offset: 2px; }
+.genre-card .dot { display: none; }
+.gc-name { font-size: 1.2rem; line-height: 1.25; }
+.gc-meta { color: var(--muted); font-size: .85rem; }
 [hidden] { display: none !important; }
 </style>
 </head>
@@ -169,6 +180,7 @@ body.has-player main { padding-bottom: 10rem; }
 
   <nav class="tabs">
     <a href="#pick" id="tab-pick">추천받기</a>
+    <a href="#all" id="tab-all">전체 장르</a>
     <a href="#likes" id="tab-likes">좋아요 목록 <span class="count" id="like-count"></span></a>
   </nav>
 
@@ -177,7 +189,7 @@ body.has-player main { padding-bottom: 10rem; }
     <fieldset><legend>지금 기분은?</legend><div class="chips" data-key="mood"></div></fieldset>
     <fieldset><legend>지금 시간대는?</legend><div class="chips" data-key="time"></div></fieldset>
     <fieldset><legend>지금 뭐 하고 있어요?</legend><div class="chips" data-key="act"></div></fieldset>
-    <fieldset><legend>취향</legend><div class="chips"><button class="chip" type="button" id="kpop" aria-pressed="true">🇰🇷 케이팝 많이</button></div></fieldset>
+    <fieldset><legend>취향</legend><div class="chips"><button class="chip" type="button" id="kpop" aria-pressed="false">🇰🇷 케이팝 많이</button></div></fieldset>
 
     <div class="go">
       <button class="btn" id="pick" disabled>장르 추천받기</button>
@@ -205,6 +217,11 @@ body.has-player main { padding-bottom: 10rem; }
         <button class="btn ghost" id="again">다른 장르 보기</button>
       </div>
     </section>
+  </section>
+
+  <section id="view-all" hidden>
+    <p class="lede">듣고 싶은 장르를 직접 골라보세요.</p>
+    <div class="genre-grid" id="genre-grid"></div>
   </section>
 
   <section id="view-likes" hidden>
@@ -404,7 +421,7 @@ const GENRES = [
 const KEYS = ["weather", "mood", "time", "act"];
 const LABEL_KEY = { weather: "w", mood: "m", time: "t", act: "a" };
 const STORE = "genre-likes-v1";
-const state = { kpop: true, weather: null, mood: null, time: null, act: null, current: null, lastName: null };
+const state = { kpop: false, weather: null, mood: null, time: null, act: null, current: null, lastName: null };
 const $ = id => document.getElementById(id);
 
 /* ---------- 저장소 ---------- */
@@ -437,10 +454,6 @@ function select(key, id) {
   updateButton();
 }
 // 지금 시각으로 시간대 미리 골라두기
-(function presetTime() {
-  const h = new Date().getHours();
-  select("time", h >= 5 && h < 11 ? "morning" : h < 17 ? "day" : h < 21 ? "evening" : "night");
-})();
 
 function isDark() {
   const t = document.documentElement.getAttribute("data-theme");
@@ -478,24 +491,30 @@ function bestReason(g) {
   });
   return REASONS[best][state[best]];
 }
+function ready() { return KEYS.every(k => state[k]); }
 function situation() {
+  if (!ready()) return "직접 고른 장르";
   const f = k => OPTIONS[k].find(x => x.id === state[k]).adj;
   return `${f("weather")} ${f("time")}, ${f("mood")}으로 ${f("act")}`;
 }
 function recommend() {
   let list = ranked();
   if (list[0].name === state.lastName) list = [list[1], list[0], ...list.slice(2)];
-  const g = list[0];
-  state.current = g; state.lastName = g.name;
+  state.lastName = list[0].name;
+  showGenre(list[0], list.slice(1), false);
+}
 
-  $("situ").textContent = situation();
+function showGenre(g, others, manual) {
+  state.current = g;
+  $("situ").textContent = manual ? "직접 고른 장르" : situation();
   $("genre").textContent = g.name;
-  $("reason").textContent = bestReason(g);
+  $("reason").textContent = manual ? "" : bestReason(g);
+  $("reason").hidden = manual;
   $("desc").textContent = g.desc;
   renderPicks(g);
   $("kw").textContent = g.kw;
   $("copy").textContent = "복사하기";
-  $("also").textContent = `이것도 어울려요: ${list[1].name}, ${list[2].name}`;
+  $("also").textContent = `이것도 어울려요: ${others[0].name}, ${others[1].name}`;
   document.documentElement.style.setProperty("--label", g.color);
   updateLikeButton();
 
@@ -610,13 +629,31 @@ function renderLikes() {
 
 /* ---------- 탭 ---------- */
 function route() {
-  const onLikes = location.hash === "#likes";
-  $("view-pick").hidden = onLikes;
-  $("view-likes").hidden = !onLikes;
-  $("tab-pick").toggleAttribute("aria-current", !onLikes);
-  $("tab-likes").toggleAttribute("aria-current", onLikes);
-  if (!onLikes) $("tab-pick").setAttribute("aria-current", "page"); else $("tab-likes").setAttribute("aria-current", "page");
-  if (onLikes) renderLikes();
+  const view = location.hash === "#likes" ? "likes" : location.hash === "#all" ? "all" : "pick";
+  ["pick", "all", "likes"].forEach(v => {
+    $("view-" + v).hidden = v !== view;
+    if (v === view) $("tab-" + v).setAttribute("aria-current", "page");
+    else $("tab-" + v).removeAttribute("aria-current");
+  });
+  if (view === "likes") renderLikes();
+}
+
+function renderGrid() {
+  const grid = $("genre-grid");
+  GENRES.forEach(g => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "genre-card";
+    b.style.setProperty("--c", g.color);
+    const n = g.picks.length + (g.gems || []).length;
+    b.innerHTML = `<span class="dot"></span><span class="gc-name display"></span><span class="gc-meta">${n}곡</span>`;
+    b.querySelector(".gc-name").textContent = g.name;
+    b.addEventListener("click", () => {
+      state.lastName = g.name;
+      location.hash = "#pick";
+      showGenre(g, GENRES.filter(x => x !== g).sort(() => Math.random() - 0.5), true);
+    });
+    grid.appendChild(b);
+  });
 }
 window.addEventListener("hashchange", route);
 
@@ -625,7 +662,13 @@ $("kpop").addEventListener("click", () => {
   $("kpop").setAttribute("aria-pressed", String(state.kpop));
 });
 $("pick").addEventListener("click", recommend);
-$("again").addEventListener("click", recommend);
+$("again").addEventListener("click", () => {
+  if (ready()) recommend();
+  else {
+    const others = GENRES.filter(x => x !== state.current).sort(() => Math.random() - 0.5);
+    showGenre(others[0], others.slice(1), true);
+  }
+});
 $("player-close").addEventListener("click", closePlayer);
 $("more").addEventListener("click", () => state.current && renderPicks(state.current));
 $("copy").addEventListener("click", async () => {
@@ -637,7 +680,7 @@ $("copy").addEventListener("click", async () => {
   }
 });
 
-updateButton(); renderLikes(); route();
+updateButton(); renderLikes(); renderGrid(); route();
 </script>
 </body>
 </html>
