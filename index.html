@@ -153,6 +153,9 @@ h3 { font-size: 1rem; margin: 0 0 .4rem; }
   background: var(--surface); border: 1px solid var(--line); border-left: 6px solid var(--c, var(--label));
 }
 .lucky .picks { margin: 0 0 .5rem; }
+.lucky.today { margin: 0 0 2rem; }
+.song-text { display: flex; flex-direction: column; min-width: 0; }
+.song-note { color: var(--muted); font-size: .85rem; line-height: 1.35; }
 .lucky .play-icon { background: var(--c, var(--label)); }
 .lucky-foot { display: flex; align-items: center; justify-content: space-between; gap: .5rem 1rem; flex-wrap: wrap; }
 button.link {
@@ -207,6 +210,11 @@ h2.sub + .likes-list + .empty { padding: .75rem 0 2rem; }
   </nav>
 
   <section id="view-pick">
+    <section class="lucky today" id="today" aria-labelledby="today-label">
+      <p class="situ" id="today-label">오늘의 숨은 명곡 · <span id="today-date"></span></p>
+      <ul class="picks" id="today-song"></ul>
+      <p class="hint" style="margin:0"><button type="button" class="link" id="today-genre"></button> · 내일 다른 곡으로 바뀌어요</p>
+    </section>
     <fieldset><legend>바깥 날씨는?</legend><div class="chips" data-key="weather"></div>
       <div class="weather-auto"><button class="btn ghost small" type="button" id="locate">📍 지금 날씨로 고르기</button><span class="hint" id="weather-hint" aria-live="polite"></span></div>
     </fieldset>
@@ -341,99 +349,448 @@ const REASONS = {
 };
 
 // w 날씨, m 기분, t 시간대, a 하는 일 (가중치 0~3)
-// picks: 많이 알려지진 않았지만 멜로디가 좋은 곡들
+// picks: [곡, 한 줄 소개] — 많이 알려지진 않았지만 멜로디가 좋은 곡들
 const GENRES = [
-  { name: "디지몬 · 추억의 애니송", color: "#F2A23A", kw: "디지몬 엔딩곡 삽입곡 모음",
-    desc: "주제가 말고, 엔딩과 삽입곡으로만 들었던 디지몬 노래들. 다시 들으면 더 좋아요.",
-    picks: ["AiM – I wish (디지몬 어드벤처 ED)", "AiM – Ashita wa Atashi no Kaze ga Fuku (디지몬 어드벤처 02 ED)", "AiM – My Tomorrow (디지몬 테이머즈 ED)", "AiM – Days 애정과 일상 (디지몬 테이머즈 ED)", "와다 코지 – Seven (디지몬 어드벤처 삽입곡)", "와다 코지 – Innocent (디지몬 프론티어 ED)", "미야자키 아유미 – Beat Hit! (디지몬 어드벤처 02)", "와다 코지 – Butter-Fly tri. Version"],
+  { name: "디지몬 · 추억의 애니송", color: "#F2A23A", kw: "애니 엔딩곡 숨은 명곡",
+    desc: "주제가 말고, 엔딩과 삽입곡으로 들었던 애니 노래들. 다시 들으면 더 좋아요.",
+    picks: [
+      ["AiM – I wish (디지몬 어드벤처 ED)", "잔잔하게 끝나던 엔딩, 지금 들으면 더 아련해요."],
+      ["AiM – Ashita wa Atashi no Kaze ga Fuku (디지몬 어드벤처 02 ED)", "통통 튀는 멜로디라 기분이 금방 밝아져요."],
+      ["AiM – My Tomorrow (디지몬 테이머즈 ED)", "차분한데 묘하게 힘이 나는 엔딩곡."],
+      ["AiM – Days 애정과 일상 (디지몬 테이머즈 ED)", "평범한 하루가 소중해지는 따뜻한 노래."],
+      ["와다 코지 – Seven (디지몬 어드벤처 삽입곡)", "벅차오르는 후렴이 오래 남는 삽입곡."],
+      ["와다 코지 – Innocent (디지몬 프론티어 ED)", "맑은 목소리로 부르는 순수한 엔딩곡."],
+      ["와다 코지 – Hirari (디지몬 세이버즈 ED)", "바람처럼 가볍게 흘러가는 멜로디."],
+      ["미야자키 아유미 – Beat Hit! (디지몬 어드벤처 02)", "들으면 저절로 주먹이 쥐어지는 곡."],
+      ["와다 코지 – Butter-Fly tri. Version", "익숙한 노래를 어른이 된 목소리로 다시."],
+      ["Seatbelts – The Real Folk Blues (카우보이 비밥 ED)", "쓸쓸하고 멋있는 엔딩의 정석."],
+      ["Seatbelts – Call Me Call Me (카우보이 비밥)", "조용한 기타와 목소리가 마음을 울려요."],
+      ["Maaya Sakamoto – Yakusoku wa Iranai (에스카플로네 OP)", "칸노 요코의 웅장하고 아름다운 멜로디."],
+      ["Maaya Sakamoto – Gravity (울프스 레인 ED)", "느리게 가라앉는 아름다운 발라드."],
+      ["Origa – Inner Universe (공각기동대 SAC OP)", "신비로운 보컬이 공간을 꽉 채워요."],
+      ["Chiaki Ishikawa – Uninstall (보쿠라노 OP)", "조용히 시작해 크게 터지는 곡."],
+      ["Aimer – Ref:rain (사랑은 비가 갠 뒤처럼 ED)", "비 오는 날 특히 잘 어울려요."],
+      ["Kalafina – Lacrimosa (흑집사 ED)", "클래식처럼 장엄한 멜로디."],
+      ["supercell – Kimi no Shiranai Monogatari (바케모노가타리 ED)", "여름밤 별 보는 장면이 그려지는 곡."]
+    ],
     w: { sun: 2, hot: 1, cold: 1, cloud: 1 }, m: { up: 3, flut: 2, blue: 2, mad: 1 },
     t: { day: 2, evening: 2 }, a: { workout: 2, commute: 3 } },
   { name: "케이팝 댄스", k: true, color: "#E05C8A", kw: "케이팝 숨은 명곡 댄스",
     desc: "타이틀곡에 가려졌거나 조용히 지나간, 후렴이 오래 남는 케이팝.",
-    picks: ["f(x) – 4 Walls", "이달의 소녀 – Hi High", "러블리즈 – Destiny (나의 지구)", "우주소녀 – 부탁해", "샤이니 – View", "여자친구 – 밤", "오마이걸 – 비밀정원", "러블리즈 – 지금, 우리"],
+    picks: [
+      ["f(x) – 4 Walls", "몽환적인 비트 위로 멜로디가 흘러요."],
+      ["이달의 소녀 – Hi High", "제목처럼 기분이 위로 올라가요."],
+      ["러블리즈 – Destiny (나의 지구)", "애틋한 멜로디가 계속 맴돌아요."],
+      ["우주소녀 – 부탁해", "몽글몽글한 신스와 후렴이 귀에 남아요."],
+      ["샤이니 – View", "시원하게 탁 트이는 하우스 리듬."],
+      ["여자친구 – 밤", "아련한 신스가 밤 공기와 잘 맞아요."],
+      ["오마이걸 – 비밀정원", "동화처럼 반짝이는 분위기."],
+      ["러블리즈 – 지금, 우리", "설레는 고백 같은 신나는 곡."],
+      ["여자친구 – 해야", "해가 떠오르는 듯 벅찬 후렴."],
+      ["여자친구 – 너 그리고 나 (NAVILLERA)", "힘차면서도 애틋한 곡."],
+      ["러블리즈 – Obliviate", "신비로운 분위기의 마법 같은 곡."],
+      ["이달의 소녀 – Why Not?", "쭉 뻗는 후렴이 시원해요."],
+      ["이달의 소녀 – Flip That", "여름 바다 같은 경쾌함."],
+      ["오마이걸 – 불꽃놀이 (Remember Me)", "불꽃처럼 터지는 후렴."],
+      ["구구단 – The Boots", "당당하고 경쾌한 곡."],
+      ["샤이니 – Married to the Music", "펑키한 리듬에 몸이 들썩여요."],
+      ["샤이니 – 1 of 1", "레트로 무드의 매끈한 곡."],
+      ["레드벨벳 – Rookie", "장난스러운 리듬이 중독적이에요."],
+      ["프리스틴 – Wee Woo", "깜찍한 사이렌 같은 후렴."],
+      ["우주소녀 – 비밀이야", "신비로운 멜로디가 매력이에요."]
+    ],
     w: { sun: 3, hot: 2, cold: 1 }, m: { up: 3, flut: 2, mad: 2 },
     t: { morning: 2, day: 3, evening: 1 }, a: { workout: 3, commute: 2 } },
   { name: "케이팝 청량", k: true, color: "#3FB6C9", kw: "케이팝 청량 숨은 명곡",
     desc: "탄산처럼 톡 쏘는 밝은 멜로디의 케이팝.",
-    picks: ["오마이걸 – 다섯 번째 계절", "fromis_9 – DM", "이달의 소녀 – Butterfly", "러블리즈 – Ah-Choo", "여자친구 – 귀를 기울이면", "우주소녀 – 꿈꾸는 마음으로", "NCT DREAM – 고래", "TXT – 동물원을 빠져나온 퓨마"],
+    picks: [
+      ["오마이걸 – 다섯 번째 계절", "몽글몽글 따뜻한 봄 같은 곡."],
+      ["fromis_9 – DM", "상큼하게 톡 쏘는 후렴."],
+      ["이달의 소녀 – Butterfly", "날아오르듯 시원하게 펼쳐지는 곡."],
+      ["러블리즈 – Ah-Choo", "재채기처럼 터지는 설렘."],
+      ["여자친구 – 귀를 기울이면", "차분하게 다가오는 달콤한 멜로디."],
+      ["우주소녀 – 꿈꾸는 마음으로", "반짝이는 신스가 기분을 띄워줘요."],
+      ["NCT DREAM – 고래", "바닷속을 헤엄치는 듯 청량한 곡."],
+      ["TXT – 동물원을 빠져나온 퓨마", "자유롭게 달리는 기분."],
+      ["여자친구 – 유리구슬", "맑고 투명한 데뷔곡."],
+      ["오마이걸 – Windy Day", "바람 부는 날처럼 상쾌해요."],
+      ["세븐틴 – 어쩌나", "설렘이 넘치는 청량 그 자체."],
+      ["세븐틴 – 아낀다", "풋풋한 에너지의 데뷔곡."],
+      ["아이즈원 – 비올레타", "꽃처럼 피어나는 멜로디."],
+      ["fromis_9 – Feel Good", "시원하게 기분 좋아지는 곡."],
+      ["fromis_9 – LOVE BOMB", "깨발랄하게 터지는 후렴."],
+      ["레드벨벳 – 행복", "데뷔곡다운 신나는 에너지."],
+      ["NCT DREAM – We Go Up", "쭉쭉 뻗어나가는 에너지."],
+      ["TXT – 9와 4분의 3 승강장에서 너를 기다려", "마법 같은 설렘이 가득해요."],
+      ["TXT – 어느날 머리에서 뿔이 자랐다 (CROWN)", "엉뚱하고 청량한 데뷔곡."],
+      ["위키미키 – Picky Picky", "톡톡 튀는 귀여운 리듬."]
+    ],
     w: { sun: 3, hot: 3 }, m: { flut: 3, up: 2, calm: 1 },
     t: { morning: 3, day: 2 }, a: { commute: 3, workout: 1, study: 1 } },
   { name: "K-밴드", k: true, color: "#E07A3F", kw: "인디 밴드 숨은 명곡",
     desc: "기타와 드럼이 끌고 가는, 청춘 영화 같은 한국 밴드 음악.",
-    picks: ["쏜애플 – 시퍼런 봄", "새소년 – 난춘", "한로로 – 입춘", "혁오 – 공드리", "더 발룬티어스 – Summer", "검정치마 – 기다린 만큼, 더", "잔나비 – 꿈과 책과 힘과 벽", "데이식스 – 놓아 놓아 놓아"],
+    picks: [
+      ["쏜애플 – 시퍼런 봄", "거칠고 푸른 청춘의 기타."],
+      ["새소년 – 난춘", "따뜻하고 나른한 봄날 같은 곡."],
+      ["한로로 – 입춘", "담담하게 시작해 크게 번지는 곡."],
+      ["혁오 – 공드리", "몽환적인 기타 위로 흐르는 목소리."],
+      ["더 발룬티어스 – Summer", "여름 햇살 같은 시원한 기타 팝."],
+      ["검정치마 – 기다린 만큼, 더", "낭만적이고 아련한 사랑 노래."],
+      ["잔나비 – 꿈과 책과 힘과 벽", "담담한 위로가 마음에 오래 남아요."],
+      ["데이식스 – 놓아 놓아 놓아", "애틋한 멜로디가 터지는 후렴."],
+      ["새소년 – 긴 꿈", "꿈속을 걷는 듯 느릿한 곡."],
+      ["검정치마 – Love Shine", "반짝이는 기타와 달콤한 고백."],
+      ["혁오 – Panda Bear", "귀엽고 엉뚱한 기타 리프."],
+      ["잔나비 – 초록을 거머쥔 우리는", "초여름 같은 싱그러운 곡."],
+      ["데이브레이크 – 꽃길만 걷게 해줄게", "기분 좋게 따라 부르게 되는 곡."],
+      ["브로콜리너마저 – 앵콜요청금지", "쓸쓸한데 자꾸 듣게 되는 곡."],
+      ["페퍼톤스 – 행운을 빌어요", "달리고 싶어지는 밝은 곡."],
+      ["페퍼톤스 – Ready, Get Set, Go!", "출발선에 선 듯 두근거려요."],
+      ["wave to earth – seasons", "포근한 기타와 나른한 목소리."],
+      ["wave to earth – bad", "담백하게 흐르는 그루브."],
+      ["너드커넥션 – 좋은 밤 좋은 꿈", "하루를 다정하게 마무리해줘요."],
+      ["나상현씨밴드 – 각자의 밤", "밤길 걸을 때 딱인 곡."]
+    ],
     w: { cold: 3, sun: 2, cloud: 2 }, m: { flut: 3, up: 2, blue: 2 },
     t: { evening: 3, night: 2 }, a: { commute: 3, rest: 1 } },
   { name: "K-힙합", k: true, color: "#6B6F3A", kw: "멜로디 좋은 국힙",
     desc: "리듬 위에 말맛과 멜로디가 함께 살아 있는 한국 힙합.",
-    picks: ["빈지노 – Dali, Van, Picasso", "빈지노 – Always Awake", "에픽하이 – 빈차 (feat. 오혁)", "에픽하이 – 혼자라고 생각말기 (feat. 김종완)", "에픽하이 – 연애소설 (feat. 아이유)", "리쌍 – 내가 웃는 게 아니야"],
+    picks: [
+      ["빈지노 – Dali, Van, Picasso", "재즈 샘플 위로 쭉 흐르는 랩."],
+      ["빈지노 – Always Awake", "잠 못 드는 밤의 차분한 그루브."],
+      ["빈지노 – Boogie On & On", "신나는 펑키 리듬."],
+      ["에픽하이 – 빈차 (feat. 오혁)", "쓸쓸한 밤 택시 같은 분위기."],
+      ["에픽하이 – 혼자라고 생각말기 (feat. 김종완)", "지친 날 조용히 건네는 위로."],
+      ["에픽하이 – 연애소설 (feat. 아이유)", "서정적인 피아노와 랩의 조합."],
+      ["에픽하이 – 1분 1초 (feat. 지선)", "짙은 감성의 비트."],
+      ["에픽하이 – 낙화", "서정적인 가사와 묵직한 비트."],
+      ["에픽하이 – Fly", "하늘로 뻗는 시원한 곡."],
+      ["리쌍 – 내가 웃는 게 아니야", "웃음 뒤의 쓸쓸함이 담긴 곡."],
+      ["다이나믹 듀오 – 고백 (Go Back)", "따라 부르게 되는 후렴."],
+      ["다이나믹 듀오 – 불꽃놀이 (feat. 오혁)", "터질 듯 아련한 밤의 노래."],
+      ["프라이머리 – See-Through (feat. 자이언티, 개코)", "산뜻하고 세련된 그루브."],
+      ["프라이머리 – 입장정리 (feat. 최자, Simon D)", "경쾌하게 넘실대는 리듬."],
+      ["윤미래 – 검은 행복", "뭉클하게 남는 진심 어린 랩."],
+      ["드렁큰 타이거 – 8:45 Heaven", "가슴 찡한 그리움의 노래."]
+    ],
     w: { rain: 2, cloud: 2, cold: 1, sun: 1 }, m: { mad: 3, up: 2, blue: 1 },
     t: { night: 2, day: 2 }, a: { workout: 2, commute: 3 } },
   { name: "감성 발라드", k: true, color: "#8EA3C7", kw: "숨은 명곡 발라드",
     desc: "마음껏 감정에 잠길 수 있게 해주는 노래.",
-    picks: ["이소라 – Track 9", "정승환 – 눈사람", "김동률 – 오래된 노래", "이적 – 빨래", "정준일 – 안아줘", "권진아 – 운이 좋았지", "짙은 – 백야", "박효신 – 숨"],
+    picks: [
+      ["이소라 – Track 9", "담담한 목소리가 깊게 스며드는 곡."],
+      ["정승환 – 눈사람", "겨울에 꺼내 듣는 따뜻한 발라드."],
+      ["김동률 – 오래된 노래", "오래된 기억이 천천히 떠오르는 곡."],
+      ["김동률 – 감사", "고마운 사람이 생각나는 곡."],
+      ["이적 – 빨래", "일상의 쓸쓸함을 담백하게 그린 노래."],
+      ["정준일 – 안아줘", "꾹 참던 감정이 터지는 곡."],
+      ["정준일 – 고백", "조심스럽게 꺼내는 진심."],
+      ["권진아 – 운이 좋았지", "지나간 사랑을 조용히 돌아보는 곡."],
+      ["짙은 – 백야", "서늘하고 아름다운 멜로디."],
+      ["박효신 – 숨", "숨이 차오르는 듯 벅찬 위로."],
+      ["성시경 – 두 사람", "서로를 다독이는 따뜻한 노래."],
+      ["윤하 – 별의 조각", "우주를 닮은 아득한 멜로디."],
+      ["아이유 – 무릎", "잠 못 드는 밤에 듣는 자장가."],
+      ["아이유 – 이름에게", "애틋하게 누군가를 부르는 곡."],
+      ["백예린 – 그건 아마 우리의 잘못은 아닐 거야", "담담한 위로가 마음에 닿아요."],
+      ["적재 – 별 보러 가자", "밤 산책에 어울리는 기타 발라드."],
+      ["이문세 – 옛사랑", "오래 두고 듣는 쓸쓸한 명곡."],
+      ["015B – 텅빈 거리에서", "빈 거리의 쓸쓸함이 그대로 담겼어요."],
+      ["하림 – 출국", "떠나는 사람의 아련한 마음."],
+      ["최유리 – 숲", "숲속처럼 고요하고 맑은 노래."]
+    ],
     w: { rain: 3, snow: 3, cold: 2, cloud: 1 }, m: { blue: 3, tired: 1, flut: 1 },
     t: { night: 3, evening: 2 }, a: { rest: 2, commute: 2 } },
   { name: "R&B · 소울", color: "#7A5A8C", kw: "감성 R&B 숨은 명곡",
     desc: "그루브 있는 리듬과 따뜻한 보컬이 어우러지는 음악.",
-    picks: ["백예린 – Bye bye my blue", "수란 – 오늘 취하면", "죠지 – 바라봐줘요", "콜드 – 와르르", "Daniel Caesar – Japanese Denim", "Lianne La Havas – Unstoppable", "Cleo Sol – Why Don't You", "Frank Ocean – Pink + White"],
+    picks: [
+      ["백예린 – Bye bye my blue", "우울을 살짝 털어내는 산뜻한 곡."],
+      ["백예린 – Square (2017)", "몽글한 신스가 감싸는 곡."],
+      ["수란 – 오늘 취하면", "나른한 밤에 어울리는 그루브."],
+      ["죠지 – 바라봐줘요", "부드럽게 녹아드는 목소리."],
+      ["콜드 – 와르르", "무너지듯 설레는 마음을 담은 곡."],
+      ["콜드 – Your Dog Loves You (feat. 크러쉬)", "귀여운 듯 따뜻한 위로."],
+      ["딘 – D (Half Moon) (feat. 개코)", "깊은 밤의 몽환적인 R&B."],
+      ["자이언티 – 노래", "힘을 빼고 부르는 진심."],
+      ["오프온오프 – gold (feat. 딘)", "몽롱하고 반짝이는 사운드."],
+      ["Daniel Caesar – Japanese Denim", "따뜻한 오르간과 담백한 보컬."],
+      ["Lianne La Havas – Unstoppable", "천천히 차오르는 아름다운 곡."],
+      ["Cleo Sol – Why Don't You", "포근하고 맑은 소울."],
+      ["Frank Ocean – Pink + White", "여름 오후처럼 몽롱한 곡."],
+      ["Erykah Badu – On & On", "느긋하게 흔들리는 네오소울."],
+      ["D'Angelo – Brown Sugar", "끈적하고 따뜻한 그루브."],
+      ["Jorja Smith – Teenage Fantasy", "담담하게 흐르는 매력적인 보컬."],
+      ["Snoh Aalegra – I Want You Around", "사랑스럽고 부드러운 곡."],
+      ["Sade – Cherish the Day", "밤공기에 어울리는 세련된 소울."],
+      ["Moonchild – The Truth", "따뜻한 혼 연주가 포근해요."],
+      ["Hiatus Kaiyote – Building a Ladder", "신비롭게 쌓이는 화음."]
+    ],
     w: { cloud: 2, rain: 3, cold: 1 }, m: { flut: 3, calm: 2, blue: 2 },
     t: { night: 3, evening: 2 }, a: { rest: 3, commute: 1 } },
   { name: "어쿠스틱 포크", color: "#9AAE6B", kw: "어쿠스틱 잔잔한 숨은 명곡",
     desc: "기타 한 대와 담백한 목소리로 마음을 조용히 다독이는 음악.",
-    picks: ["카더가든 – 나무", "루시드폴 – 고등어", "김사월 – 수잔", "신지훈 – 시가 될 이야기", "가을방학 – 언젠가 너로 인해", "Nick Drake – Pink Moon", "José González – Heartbeats", "Iron & Wine – Naked as We Came"],
+    picks: [
+      ["카더가든 – 나무", "기대고 싶어지는 따뜻한 목소리."],
+      ["루시드폴 – 고등어", "소박한 일상을 노래하는 곡."],
+      ["루시드폴 – 오, 사랑", "다정하게 흘러가는 사랑 노래."],
+      ["김사월 – 수잔", "쓸쓸하고 신비로운 기타 포크."],
+      ["신지훈 – 시가 될 이야기", "맑은 목소리로 들려주는 동화 같은 곡."],
+      ["가을방학 – 언젠가 너로 인해", "담담한 듯 아픈 가사."],
+      ["가을방학 – 가끔 미치도록 네가 안고 싶어질 때가 있어", "아련한 그리움이 가득해요."],
+      ["옥상달빛 – 하드코어 인생아", "지친 날 웃음 나는 위로."],
+      ["김목인 – 그게 다 외로워서래", "담백하게 웃음 짓게 하는 곡."],
+      ["이영훈 – 일종의 고백", "조용히 털어놓는 고백."],
+      ["장필순 – 나의 외로움이 널 부를 때", "쓸쓸함마저 아름다운 목소리."],
+      ["김광석 – 바람이 불어오는 곳", "바람처럼 가벼운 기타."],
+      ["우효 – 민들레", "담백하고 귀여운 목소리."],
+      ["Nick Drake – Pink Moon", "짧지만 오래 남는 기타 선율."],
+      ["José González – Heartbeats", "기타 한 대로 만든 깊은 울림."],
+      ["Iron & Wine – Naked as We Came", "속삭이듯 조용한 곡."],
+      ["Elliott Smith – Between the Bars", "조용히 속삭이는 쓸쓸함."],
+      ["Adrianne Lenker – anything", "따뜻하고 투박한 기타."],
+      ["The Paper Kites – Bloom", "봄날 같은 포근한 곡."],
+      ["Novo Amor – Anchor", "아득하게 번지는 목소리."]
+    ],
     w: { cold: 3, cloud: 2, sun: 1, snow: 1 }, m: { calm: 2, blue: 2, tired: 3 },
     t: { morning: 2, evening: 2 }, a: { rest: 2, commute: 2, study: 1 } },
   { name: "시티팝", color: "#E58FA8", kw: "시티팝 숨은 명곡",
     desc: "반짝이는 신스와 경쾌한 베이스로 해 질 녘 드라이브 기분을 내는 음악.",
-    picks: ["김현철 – 춘천 가는 기차", "김현철 – 동네", "이문세 – 깊은 밤을 날아서", "유키카 – NEON", "Junko Ohashi – Telephone Number", "Taeko Ohnuki – 4:00 A.M.", "Anri – Last Summer Whisper"],
+    picks: [
+      ["김현철 – 춘천 가는 기차", "창밖 풍경이 그려지는 여행 노래."],
+      ["김현철 – 동네", "저녁 골목길 같은 따뜻한 곡."],
+      ["김현철 – 왜 그래", "리드미컬하게 투정 부리는 곡."],
+      ["이문세 – 깊은 밤을 날아서", "밤하늘을 나는 듯 경쾌한 곡."],
+      ["빛과 소금 – 샴푸의 요정", "몽글한 신스와 달콤한 멜로디."],
+      ["윤상 – 이별의 그늘", "쓸쓸하고 세련된 신스 팝."],
+      ["장필순 – 어느새", "담담하게 흐르는 세련된 곡."],
+      ["유키카 – NEON", "네온사인 아래 걷는 듯 반짝여요."],
+      ["유키카 – 서울여자", "도시의 낮과 밤을 담은 곡."],
+      ["Junko Ohashi – Telephone Number", "통통 튀는 베이스가 매력."],
+      ["Taeko Ohnuki – 4:00 A.M.", "새벽 공기 같은 세련된 곡."],
+      ["Anri – Last Summer Whisper", "여름 끝자락의 아련함."],
+      ["Tatsuro Yamashita – Sparkle", "반짝이는 기타 리프가 시원해요."],
+      ["Mariya Takeuchi – September", "가을로 넘어가는 산뜻함."],
+      ["Tomoko Aran – Midnight Pretenders", "한밤의 몽환적인 그루브."],
+      ["Meiko Nakahara – Fantasy", "신나는 디스코 리듬."],
+      ["Takako Mamiya – Love Trip", "여유로운 여름 드라이브 곡."]
+    ],
     w: { sun: 3, hot: 2 }, m: { flut: 3, up: 2, calm: 1 },
     t: { evening: 3, day: 2 }, a: { commute: 3, rest: 1 } },
   { name: "로파이 힙합", color: "#8C7AB8", kw: "lofi hip hop 플레이리스트",
     desc: "느슨한 비트와 잔잔한 노이즈가 배경을 채워주는 음악.",
-    picks: ["Kudasai – The Girl I Haven't Met", "Tomppabeats – Monday Loop", "potsu – just friends", "Nujabes – Reflection Eternal", "J Dilla – Time: The Donut of the Heart"],
+    picks: [
+      ["Kudasai – The Girl I Haven't Met", "그리움이 묻은 몽글한 비트."],
+      ["Tomppabeats – Monday Loop", "월요일도 괜찮게 만드는 루프."],
+      ["potsu – just friends", "따뜻한 재즈 코드의 로파이."],
+      ["Nujabes – Reflection Eternal", "잔잔하게 반복되는 피아노가 아름다워요."],
+      ["Nujabes – Spiral", "물결처럼 감기는 멜로디."],
+      ["Nujabes – Kumomi", "구름 보는 날의 여유."],
+      ["Nujabes & Shing02 – Luv(sic) Part 2", "담백한 랩과 피아노 루프."],
+      ["J Dilla – Time: The Donut of the Heart", "짧고 깊은 소울 샘플."],
+      ["Jinsang – Solitude", "혼자 있는 시간이 편해지는 곡."],
+      ["Idealism – Snowfall", "눈 내리는 밤 같은 고요함."],
+      ["DJ Okawari – Flower Dance", "꽃잎처럼 가볍게 날리는 피아노."],
+      ["DJ Okawari – Luv Letter", "사랑 편지 같은 달콤한 곡."],
+      ["Emancipator – Soon It Will Be Cold Enough to Build Fires", "서늘한 계절의 잔잔한 비트."]
+    ],
     w: { rain: 3, cloud: 2, snow: 2, cold: 1 }, m: { calm: 2, tired: 2, blue: 1 },
     t: { night: 3, evening: 2 }, a: { study: 3, rest: 2 } },
   { name: "재즈", color: "#B88A4A", kw: "잔잔한 재즈 숨은 명곡",
     desc: "피아노와 색소폰이 공간을 부드럽게 채우는 음악.",
-    picks: ["Bill Evans – Peace Piece", "Ahmad Jamal – Poinciana", "Vince Guaraldi – Cast Your Fate to the Wind", "Keith Jarrett – My Song", "Esbjörn Svensson Trio – Seven Days of Falling", "Hank Mobley – Remember", "Sonny Clark – Cool Struttin'"],
+    picks: [
+      ["Bill Evans – Peace Piece", "고요하게 반복되는 피아노 명상."],
+      ["Bill Evans – Turn Out the Stars", "쓸쓸하게 아름다운 피아노."],
+      ["Ahmad Jamal – Poinciana", "여유롭게 흔들리는 리듬."],
+      ["Vince Guaraldi – Cast Your Fate to the Wind", "바람처럼 경쾌한 피아노."],
+      ["Keith Jarrett – My Song", "맑고 다정한 멜로디."],
+      ["Esbjörn Svensson Trio – Seven Days of Falling", "서늘하게 쌓이는 감정."],
+      ["Hank Mobley – Remember", "부드럽게 노래하는 색소폰."],
+      ["Sonny Clark – Cool Struttin'", "느긋하게 걷는 듯한 블루스."],
+      ["Duke Pearson – Cristo Redentor", "숙연하고 깊은 울림."],
+      ["Horace Silver – Song for My Father", "경쾌한 보사 리듬의 재즈."],
+      ["Lee Morgan – Ceora", "사랑스럽게 노래하는 트럼펫."],
+      ["Kenny Dorham – Lotus Blossom", "시원하게 달리는 혼 연주."],
+      ["Wes Montgomery – Polka Dots and Moonbeams", "따뜻한 기타 톤이 매력."],
+      ["Chet Baker – Almost Blue", "속삭이는 트럼펫과 목소리."],
+      ["McCoy Tyner – Contemplation", "깊은 생각에 잠기게 하는 곡."],
+      ["Brad Mehldau – Exit Music (For a Film)", "쓸쓸한 아름다움이 가득해요."],
+      ["GoGo Penguin – Hopopono", "반복되는 피아노가 묘하게 중독적."],
+      ["Avishai Cohen – Seven Seas", "바다처럼 넘실대는 멜로디."],
+      ["Hiromi – Place to Be", "맑고 다정한 피아노 솔로."],
+      ["Michel Petrucciani – Looking Up", "밝고 경쾌한 피아노."]
+    ],
     w: { rain: 3, cloud: 2, cold: 2, snow: 1 }, m: { calm: 3, blue: 2, tired: 1 },
     t: { evening: 3, night: 3, morning: 1 }, a: { rest: 3, study: 2 } },
   { name: "보사노바", color: "#4FA3A0", kw: "bossa nova cafe music",
     desc: "살랑이는 리듬과 나른한 기타가 매력인 브라질 음악.",
-    picks: ["Marcos Valle – Samba de Verão", "Joyce – Feminina", "João Donato – A Rã", "Astrud Gilberto – Agua de Beber", "Toquinho – Aquarela", "Elis Regina & Tom Jobim – Águas de Março"],
+    picks: [
+      ["Marcos Valle – Samba de Verão", "여름 오후처럼 산뜻한 곡."],
+      ["Joyce – Feminina", "경쾌한 기타와 맑은 목소리."],
+      ["João Donato – A Rã", "통통 튀는 귀여운 리듬."],
+      ["Astrud Gilberto – Agua de Beber", "시원하게 흐르는 멜로디."],
+      ["Toquinho – Aquarela", "수채화처럼 맑은 노래."],
+      ["Elis Regina & Tom Jobim – Águas de Março", "둘의 대화 같은 정겨운 곡."],
+      ["Nara Leão – O Barquinho", "작은 배처럼 살랑이는 곡."],
+      ["Walter Wanderley – Summer Samba", "오르간이 경쾌한 여름 곡."],
+      ["João Gilberto – Corcovado", "조용히 속삭이는 기타."],
+      ["Antônio Carlos Jobim – Stone Flower", "은근하게 흐르는 그루브."],
+      ["Caetano Veloso – Coração Vagabundo", "나른하게 흔들리는 목소리."],
+      ["Bebel Gilberto – So Nice", "세련되게 다시 부른 여름 노래."],
+      ["Luiz Bonfá – Manhã de Carnaval", "아련한 카니발의 아침."],
+      ["Baden Powell – Samba Triste", "슬프고 아름다운 기타."],
+      ["Sérgio Mendes – So Many Stars", "별이 쏟아지는 듯한 곡."]
+    ],
     w: { hot: 3, sun: 2, rain: 1 }, m: { calm: 3, tired: 1, flut: 1 },
     t: { morning: 3, day: 2 }, a: { study: 2, rest: 2 } },
   { name: "하우스 · EDM", color: "#4F7FD8", kw: "melodic house mix",
     desc: "멜로디가 살아 있는, 쉬지 않고 이어지는 전자 음악.",
-    picks: ["Porter Robinson & Madeon – Shelter", "Porter Robinson – Divinity", "Madeon – All My Friends", "ODESZA – A Moment Apart", "Lane 8 – Brightest Lights", "Bonobo – Kerala", "Kygo – Firestone"],
+    picks: [
+      ["Porter Robinson & Madeon – Shelter", "벅차오르는 감성 일렉트로닉."],
+      ["Porter Robinson – Divinity", "거대하게 펼쳐지는 멜로디."],
+      ["Porter Robinson – Sad Machine", "쓸쓸하고 반짝이는 신스."],
+      ["Porter Robinson – Something Comforting", "위로처럼 다가오는 곡."],
+      ["Madeon – All My Friends", "친구들과 뛰고 싶은 곡."],
+      ["Madeon – Be Fine", "괜찮아질 거라 말해주는 신나는 곡."],
+      ["ODESZA – A Moment Apart", "시네마틱하게 차오르는 사운드."],
+      ["ODESZA – Say My Name (feat. Zyra)", "몽환적이고 시원한 보컬."],
+      ["ODESZA – Bloom", "꽃이 피듯 서서히 퍼지는 곡."],
+      ["Lane 8 – Brightest Lights", "밤 드라이브에 어울리는 딥하우스."],
+      ["Ben Böhmer – Beyond Beliefs", "잔잔하게 흐르는 멜로딕 하우스."],
+      ["Bonobo – Kerala", "쪼개지는 보컬 샘플이 중독적."],
+      ["Bonobo – Cirrus", "반복될수록 빠져드는 리듬."],
+      ["RÜFÜS DU SOL – Innerbloom", "천천히 차오르는 긴 여운."],
+      ["Jon Hopkins – Emerald Rush", "반짝이며 휘몰아치는 사운드."],
+      ["Petit Biscuit – Sunset Lover", "노을 질 때 듣는 곡."],
+      ["San Holo – Light", "기타와 신스가 빛처럼 번져요."],
+      ["Moderat – A New Error", "서늘하고 묵직하게 밀려오는 곡."],
+      ["Daft Punk – Something About Us", "부드럽고 달콤한 일렉트로닉."],
+      ["Kygo – Firestone", "따뜻한 트로피컬 하우스."]
+    ],
     w: { hot: 3, sun: 2 }, m: { up: 3, mad: 2 },
     t: { day: 2, night: 2 }, a: { workout: 3, study: 1 } },
   { name: "클래식 피아노", color: "#A9B3BE", kw: "잔잔한 피아노 숨은 명곡",
     desc: "가사 없이 흐르는 피아노 선율.",
-    picks: ["Ólafur Arnalds – saman", "Nils Frahm – Says", "Ryuichi Sakamoto – aqua", "Joep Beving – Sleeping Lotus", "김광민 – 지금은 우리가 멀리 있을지라도", "Schubert – Impromptu Op. 90 No. 3", "Grieg – Arietta Op. 12 No. 1", "Satie – Gnossienne No. 1"],
+    picks: [
+      ["Ólafur Arnalds – saman", "'함께'라는 뜻의 따뜻한 곡."],
+      ["Ólafur Arnalds – Near Light", "반짝이며 다가오는 빛 같은 곡."],
+      ["Nils Frahm – Says", "천천히 쌓아 올려 터지는 감동."],
+      ["Nils Frahm – Ambre", "아주 조용하고 따뜻한 피아노."],
+      ["Ryuichi Sakamoto – aqua", "물처럼 맑고 투명한 피아노."],
+      ["Ryuichi Sakamoto – Energy Flow", "마음을 차분하게 가라앉혀요."],
+      ["Joep Beving – Sleeping Lotus", "잠든 연꽃처럼 고요한 곡."],
+      ["Hania Rani – Eden", "맑고 섬세하게 흐르는 곡."],
+      ["Max Richter – Vladimir's Blues", "짧고 쓸쓸한 피아노 소품."],
+      ["김광민 – 지금은 우리가 멀리 있을지라도", "그리운 사람이 떠오르는 피아노."],
+      ["Schubert – Impromptu Op. 90 No. 3", "노래하듯 흐르는 선율."],
+      ["Grieg – Arietta Op. 12 No. 1", "짧고 소박한 아름다움."],
+      ["Satie – Gnossienne No. 1", "신비롭게 떠도는 멜로디."],
+      ["Chopin – Prelude Op. 28 No. 4", "짧고 슬픈 아름다움."],
+      ["Debussy – Rêverie", "꿈꾸듯 흐르는 선율."],
+      ["Mompou – Cançó i dansa No. 6", "소박하고 따뜻한 스페인 선율."],
+      ["Rachmaninoff – Prelude Op. 32 No. 5", "고요하게 반짝이는 소품."],
+      ["Schumann – Träumerei", "꿈을 꾸는 듯한 곡."],
+      ["Mendelssohn – Song Without Words Op. 19 No. 1", "말없이 노래하는 따뜻한 피아노."]
+    ],
     w: { snow: 3, rain: 2, cloud: 1 }, m: { calm: 2, blue: 1, tired: 1 },
     t: { morning: 2, night: 2 }, a: { study: 3, rest: 2 } },
   { name: "앰비언트", color: "#6E9BB5", kw: "ambient music relax",
     desc: "공기처럼 깔리는 소리로 생각을 비워주는 음악.",
-    picks: ["Midori Takada – Mr. Henri Rousseau's Dream", "Hiroshi Yoshimura – Water Copy", "Harold Budd & Brian Eno – First Light", "Tycho – A Walk", "Grouper – Heavy Water/I'd Rather Be Sleeping"],
+    picks: [
+      ["Midori Takada – Mr. Henri Rousseau's Dream", "정글 속을 걷는 듯한 신비로운 소리."],
+      ["Hiroshi Yoshimura – Water Copy", "물방울처럼 똑똑 떨어지는 소리."],
+      ["Harold Budd & Brian Eno – First Light", "새벽빛처럼 번지는 피아노."],
+      ["Brian Eno – 1/1", "공항 대합실처럼 고요한 피아노."],
+      ["Brian Eno – An Ending (Ascent)", "하늘로 천천히 떠오르는 소리."],
+      ["Tycho – A Walk", "산책하듯 가볍게 흐르는 곡."],
+      ["Tycho – Awake", "아침에 눈뜨듯 밝아지는 곡."],
+      ["Tycho – Dive", "깊이 잠수하는 듯한 따뜻함."],
+      ["Boards of Canada – Dayvan Cowboy", "천천히 날아오르는 듯한 곡."],
+      ["Boards of Canada – Roygbiv", "어린 시절 기억 같은 신스."],
+      ["Helios – Halving the Compass", "잔잔한 기타가 마음을 비워줘요."],
+      ["Sigur Rós – Svefn-g-englar", "꿈결처럼 길게 퍼지는 소리."],
+      ["Aphex Twin – Avril 14th", "짧고 맑은 피아노 소품."],
+      ["Grouper – Heavy Water/I'd Rather Be Sleeping", "안개처럼 흐릿하고 포근한 소리."]
+    ],
     w: { snow: 3, cloud: 2, rain: 2 }, m: { tired: 3, mad: 2, calm: 1 },
     t: { night: 3, morning: 1 }, a: { study: 3, rest: 3 } },
   { name: "펑크 · 디스코", color: "#E3A93C", kw: "funk soul hidden gems",
     desc: "통통 튀는 베이스와 리듬 기타로 몸이 들썩이는 음악.",
-    picks: ["Vulfpeck – Dean Town", "Jamiroquai – Seven Days in Sunny June", "Tom Misch – Movie", "Shuggie Otis – Inspiration Information", "Change – The Glow of Love", "김완선 – 리듬 속의 그 춤을"],
+    picks: [
+      ["Vulfpeck – Dean Town", "베이스가 주인공인 신나는 연주곡."],
+      ["Vulfpeck – Back Pocket", "귀에 쏙 들어오는 경쾌한 곡."],
+      ["Jamiroquai – Seven Days in Sunny June", "햇살 가득한 여유로운 그루브."],
+      ["Jamiroquai – Space Cowboy", "둥둥 떠다니는 그루브."],
+      ["Tom Misch – Movie", "영화 같은 부드러운 기타."],
+      ["Tom Misch – South of the River", "바이올린과 기타가 상쾌해요."],
+      ["Shuggie Otis – Inspiration Information", "따뜻하고 몽롱한 소울."],
+      ["Change – The Glow of Love", "반짝이는 디스코 발라드."],
+      ["Earth, Wind & Fire – Can't Hide Love", "화려하게 쏟아지는 혼 연주."],
+      ["The Brothers Johnson – Strawberry Letter 23", "달콤하게 흐르는 기타."],
+      ["Kool & the Gang – Summer Madness", "노을처럼 느긋한 신스."],
+      ["Patrice Rushen – Forget Me Nots", "통통 튀는 베이스의 고전."],
+      ["Sister Sledge – Thinking of You", "기분 좋게 흔들리는 디스코."],
+      ["Chic – I Want Your Love", "매끈하고 세련된 디스코."],
+      ["Parcels – Tieduprightnow", "매끈한 기타 리프가 시원해요."],
+      ["Khruangbin – Maria También", "사막을 달리는 듯한 기타."],
+      ["김완선 – 리듬 속의 그 춤을", "레트로한 신스와 춤추고 싶은 리듬."],
+      ["윤수일 – 황홀한 고백", "레트로 감성 가득한 신나는 곡."],
+      ["나미 – 빙글빙글", "어깨가 들썩이는 레트로 댄스."]
+    ],
     w: { sun: 2, hot: 2 }, m: { up: 3, flut: 2, mad: 1 },
     t: { evening: 2, day: 2 }, a: { workout: 2, commute: 2 } },
   { name: "록 · 얼터너티브", color: "#B0423F", kw: "얼터너티브 록 숨은 명곡",
     desc: "기타 소리 위로 멜로디가 크게 번지는 음악.",
-    picks: ["델리스파이스 – 챠우챠우", "국카스텐 – 거울", "언니네 이발관 – 가장 보통의 존재", "브로콜리너마저 – 졸업", "Slowdive – When the Sun Hits", "The Sundays – Here's Where the Story Ends", "Cocteau Twins – Heaven or Las Vegas", "Wilco – Jesus, Etc."],
+    picks: [
+      ["델리스파이스 – 챠우챠우", "계속 맴도는 후렴의 한국 인디 고전."],
+      ["국카스텐 – 거울", "폭발적인 보컬과 기타."],
+      ["언니네 이발관 – 가장 보통의 존재", "담담한 목소리에 담긴 깊은 쓸쓸함."],
+      ["브로콜리너마저 – 졸업", "끝과 시작 사이의 복잡한 마음."],
+      ["넬 – 기억을 걷는 시간", "잔잔하게 시작해 크게 번지는 곡."],
+      ["실리카겔 – NO PAIN", "몰아치는 사운드 속 시원한 후렴."],
+      ["Slowdive – When the Sun Hits", "파도처럼 덮쳐오는 기타 소리."],
+      ["The Sundays – Here's Where the Story Ends", "맑고 아련한 90년대 기타 팝."],
+      ["Cocteau Twins – Heaven or Las Vegas", "반짝이는 기타와 몽환적 보컬."],
+      ["Wilco – Jesus, Etc.", "따뜻하고 쓸쓸한 멜로디."],
+      ["The La's – There She Goes", "반짝이는 기타 팝의 고전."],
+      ["Mazzy Star – Fade into You", "느리고 몽환적인 사랑 노래."],
+      ["Teenage Fanclub – The Concept", "기타와 화음이 포근한 곡."],
+      ["Pavement – Gold Soundz", "느슨하고 따뜻한 기타."],
+      ["Galaxie 500 – Strange", "담담하게 흐르는 쓸쓸함."],
+      ["Ride – Vapour Trail", "반짝이며 흩어지는 기타."],
+      ["My Bloody Valentine – Sometimes", "흐릿하게 감싸는 소리."],
+      ["Radiohead – Let Down", "차오르는 기타가 아름다운 곡."],
+      ["Death Cab for Cutie – Title and Registration", "담담한 일상의 노래."],
+      ["Beach House – Space Song", "우주를 떠도는 듯한 몽환."]
+    ],
     w: { cold: 2, cloud: 1, hot: 1, rain: 1 }, m: { mad: 3, up: 2 },
     t: { day: 2, night: 1 }, a: { workout: 3, commute: 2 } },
   { name: "레게", color: "#5E9E5A", kw: "rocksteady reggae classics",
     desc: "느긋하게 튕기는 엇박자가 매력인 음악.",
-    picks: ["Toots & the Maytals – Pressure Drop", "John Holt – Ali Baba", "Phyllis Dillon – Perfidia", "Dennis Brown – Here I Come", "The Paragons – The Tide Is High", "Alton Ellis – I'm Still in Love with You"],
+    picks: [
+      ["Toots & the Maytals – Pressure Drop", "신나게 흔들리는 고전 레게."],
+      ["John Holt – Ali Baba", "동화처럼 다정한 곡."],
+      ["Phyllis Dillon – Perfidia", "달콤하고 아련한 록스테디."],
+      ["Dennis Brown – Here I Come", "밝고 자신감 넘치는 곡."],
+      ["The Paragons – The Tide Is High", "밀려오는 파도처럼 느긋해요."],
+      ["Alton Ellis – I'm Still in Love with You", "사랑스러운 록스테디의 정석."],
+      ["Gregory Isaacs – Night Nurse", "밤에 어울리는 부드러운 목소리."],
+      ["Desmond Dekker – Israelites", "경쾌하게 튀는 리듬."],
+      ["The Heptones – Book of Rules", "화음이 아름다운 곡."],
+      ["Ken Boothe – Everything I Own", "애틋하게 부르는 커버."],
+      ["Jimmy Cliff – Many Rivers to Cross", "깊게 울리는 소울 레게."],
+      ["Bob Marley – Turn Your Lights Down Low", "낮게 깔리는 사랑 노래."],
+      ["Augustus Pablo – Java", "멜로디카가 몽환적인 연주곡."],
+      ["Marcia Griffiths – Feel Like Jumping", "저절로 뛰고 싶어지는 곡."],
+      ["Sugar Minott – Good Thing Going", "달콤한 러버스 록."],
+      ["스컬 & 하하 – 부산 바캉스", "여름 바다로 떠나고 싶어지는 곡."]
+    ],
     w: { hot: 3, sun: 2 }, m: { calm: 2, tired: 2, mad: 1 },
     t: { day: 3, evening: 1 }, a: { rest: 2, commute: 1 } }
 ];
+
+// [곡, 한 줄 소개] → 곡 이름 목록 + 소개 사전
+const NOTES = {};
+GENRES.forEach(g => { g.picks = g.picks.map(([p, note]) => { NOTES[p] = note; return p; }); });
 
 const KEYS = ["weather", "mood", "time", "act"];
 const LABEL_KEY = { weather: "w", mood: "m", time: "t", act: "a" };
@@ -639,7 +996,10 @@ function songRow(p, g) {
   btn.type = "button"; btn.className = "song";
   btn.setAttribute("aria-label", `${p} 듣기`);
   const icon = document.createElement("span"); icon.className = "play-icon"; icon.textContent = "▶";
-  const t = document.createElement("span"); t.textContent = p;
+  const t = document.createElement("span"); t.className = "song-text";
+  const title = document.createElement("span"); title.textContent = p;
+  t.appendChild(title);
+  if (NOTES[p]) { const n = document.createElement("span"); n.className = "song-note"; n.textContent = NOTES[p]; t.appendChild(n); }
   btn.append(icon, t);
   btn.addEventListener("click", () => openSearch(searchQuery(p)));
 
@@ -679,6 +1039,30 @@ function drawLucky() {
   box.scrollIntoView({ behavior: reduceMotion() ? "auto" : "smooth", block: "nearest" });
 }
 $("random").addEventListener("click", drawLucky);
+
+/* ---------- 오늘의 숨은 명곡 ---------- */
+// 한국 시간 날짜마다 모두에게 같은 곡. 전체 곡을 한 바퀴 다 돌 때까지 겹치지 않아요.
+function todaySong() {
+  const day = Math.floor((Date.now() + 9 * 3600 * 1000) / 86400000);
+  const n = ALL_SONGS.length;
+  let seed = Math.floor(day / n) + 20261125;
+  const rnd = () => { seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 4294967296; };
+  const order = ALL_SONGS.map((_, i) => i);
+  for (let i = n - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [order[i], order[j]] = [order[j], order[i]]; }
+  return ALL_SONGS[order[day % n]];
+}
+function renderToday() {
+  const { p, g } = todaySong();
+  const d = new Date(Date.now() + 9 * 3600 * 1000);
+  $("today-date").textContent = `${d.getUTCMonth() + 1}월 ${d.getUTCDate()}일`;
+  $("today").style.setProperty("--c", g.color);
+  const ul = $("today-song"); ul.innerHTML = "";
+  ul.appendChild(songRow(p, g));
+  const gb = $("today-genre");
+  gb.textContent = g.name;
+  gb.onclick = () => showGenre(g, othersFor(g), true);
+  syncHearts();
+}
 $("lucky-again").addEventListener("click", drawLucky);
 
 /* ---------- 좋아요 ---------- */
@@ -827,7 +1211,7 @@ $("copy").addEventListener("click", async () => {
   }
 });
 
-updateButton(); renderServices(); renderLikes(); renderGrid(); route(); openShared();
+updateButton(); renderServices(); renderLikes(); renderGrid(); renderToday(); route(); openShared();
 </script>
 </body>
 </html>
