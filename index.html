@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>오늘은 뭘 들을까</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎧</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Gowun+Dodum&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #E6ECF1; --surface: #F7F9FB; --ink: #1C2733; --muted: #5B6875;
+  --line: #C9D3DC; --chip: #FFFFFF; --chip-on: #1C2733; --chip-on-ink: #F7F9FB;
+  --label: #6A8CAF; --disc: #1A1A1D; --groove: #2C2C31; --heart: #D9466B;
+  color-scheme: light;
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121820; --surface: #1A222C; --ink: #E4EAF0; --muted: #9AA6B2;
+    --line: #2E3A47; --chip: #222C37; --chip-on: #E4EAF0; --chip-on-ink: #121820;
+    --disc: #050507; --groove: #1B1B20; --heart: #F06A8C; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121820; --surface: #1A222C; --ink: #E4EAF0; --muted: #9AA6B2;
+  --line: #2E3A47; --chip: #222C37; --chip-on: #E4EAF0; --chip-on-ink: #121820;
+  --disc: #050507; --groove: #1B1B20; --heart: #F06A8C; color-scheme: dark;
+}
+*, *::before, *::after { box-sizing: inherit; }
+html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font-family: "Gowun Dodum", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+  font-size: 1rem; line-height: 1.6; transition: background-color .6s ease;
+}
+main { max-width: 44rem; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
+.display {
+  font-family: "Black Han Sans", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; font-weight: 400;
+}
+h1 { font-size: clamp(2.3rem, 8vw, 3.5rem); line-height: 1.05; margin: 0 0 .5rem; }
+.lede { color: var(--muted); margin: 0 0 1.5rem; }
+
+nav.tabs { display: flex; gap: .25rem; border-bottom: 1px solid var(--line); margin-bottom: 2rem; }
+nav.tabs a {
+  color: var(--muted); text-decoration: none; padding: .6rem .9rem; font-size: 1rem;
+  border-bottom: 3px solid transparent; margin-bottom: -1px;
+}
+nav.tabs a[aria-current="page"] { color: var(--ink); border-bottom-color: var(--ink); }
+nav.tabs a:focus-visible { outline: 3px solid var(--label); outline-offset: 2px; }
+.count { color: var(--heart); }
+
+fieldset { border: 0; padding: 0; margin: 0 0 1.5rem; min-width: 0; }
+legend { font-size: 1.05rem; margin-bottom: .6rem; padding: 0; }
+.chips { display: flex; flex-wrap: wrap; gap: .5rem; }
+.chip {
+  font: inherit; font-size: .95rem; color: var(--ink); background: var(--chip);
+  border: 1px solid var(--line); border-radius: 999px; padding: .45rem 1rem; cursor: pointer;
+  transition: background-color .15s, color .15s, border-color .15s; min-height: 2.5rem;
+}
+.chip:hover { border-color: var(--ink); }
+.chip[aria-pressed="true"] { background: var(--chip-on); color: var(--chip-on-ink); border-color: var(--chip-on); }
+.chip:focus-visible, .btn:focus-visible { outline: 3px solid var(--label); outline-offset: 2px; }
+
+.go { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; margin-top: .5rem; }
+.btn {
+  font: inherit; font-size: 1.05rem; border-radius: .6rem; padding: .7rem 1.4rem; cursor: pointer;
+  background: var(--ink); color: var(--bg); border: 1px solid var(--ink); min-height: 2.75rem;
+}
+.btn.ghost { background: transparent; color: var(--ink); border-color: var(--line); }
+.btn.small { font-size: .9rem; padding: .35rem .85rem; min-height: 2.25rem; }
+.btn:disabled { opacity: .4; cursor: not-allowed; }
+.hint { color: var(--muted); font-size: .9rem; }
+
+.result { margin-top: 3rem; display: none; grid-template-columns: minmax(0, 12rem) 1fr; gap: 2rem; align-items: start; }
+.result.show { display: grid; }
+@media (max-width: 560px) {
+  .result.show { grid-template-columns: 1fr; }
+  .disc-wrap { width: 9.5rem; }
+}
+.disc-wrap { width: 100%; aspect-ratio: 1; }
+.disc {
+  width: 100%; height: 100%; border-radius: 50%; position: relative;
+  background:
+    radial-gradient(circle, var(--label) 0 31%, var(--disc) 31.5% 33%, transparent 33%),
+    repeating-radial-gradient(circle, var(--disc) 0 2px, var(--groove) 2px 3px);
+  box-shadow: 0 1rem 2rem -1rem rgba(0,0,0,.45);
+}
+.disc::after { content: ""; position: absolute; inset: 47.5%; border-radius: 50%; background: var(--bg); }
+.disc.spin { animation: spin 3.2s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .disc.spin { animation: none; } }
+
+.situ { color: var(--muted); font-size: .95rem; margin: 0 0 .2rem; }
+.genre-row { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; margin: 0 0 .6rem; }
+.genre { font-size: clamp(2rem, 7vw, 2.8rem); line-height: 1.1; margin: 0; }
+.like {
+  font: inherit; font-size: .95rem; cursor: pointer; border-radius: 999px; padding: .35rem .9rem;
+  background: transparent; color: var(--heart); border: 1px solid var(--heart); min-height: 2.25rem;
+}
+.like[aria-pressed="true"] { background: var(--heart); color: #fff; }
+.like:focus-visible { outline: 3px solid var(--heart); outline-offset: 2px; }
+.reason { font-size: 1.05rem; margin: 0 0 .4rem; }
+.desc { color: var(--muted); margin: 0 0 1.25rem; max-width: 34rem; }
+h3 { font-size: 1rem; margin: 0 0 .4rem; }
+.picks { list-style: none; padding: 0; margin: 0 0 1.25rem; }
+.picks li { padding: .45rem 0; border-bottom: 1px solid var(--line); }
+.picks li:last-child { border-bottom: 0; }
+.picks li { padding: 0; }
+.song {
+  font: inherit; color: var(--ink); background: none; border: 0; cursor: pointer; text-align: left;
+  display: flex; align-items: center; gap: .75rem; width: 100%; padding: .55rem .25rem; border-radius: .4rem;
+}
+.song:hover { background: var(--surface); }
+.song:focus-visible { outline: 3px solid var(--label); outline-offset: 1px; }
+.play-icon {
+  flex: none; width: 2rem; height: 2rem; border-radius: 50%; display: grid; place-items: center;
+  background: var(--label); color: #fff; font-size: .75rem;
+}
+.player {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
+  display: flex; align-items: center; gap: 1rem;
+  background: var(--surface); border-top: 1px solid var(--line);
+  padding: .75rem 1rem calc(.75rem + env(safe-area-inset-bottom, 0px));
+  box-shadow: 0 -.5rem 1.5rem -1rem rgba(0,0,0,.4);
+}
+.player-frame { flex: none; width: 10rem; aspect-ratio: 16 / 9; border-radius: .4rem; overflow: hidden; background: var(--disc); }
+.player-frame:empty { display: none; }
+.player-frame iframe { width: 100%; height: 100%; border: 0; display: block; }
+.player-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: .15rem; }
+.player-info strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.player-msg { color: var(--muted); font-size: .85rem; }
+.player-msg:empty { display: none; }
+.player-info a { color: var(--muted); font-size: .85rem; }
+body.has-player main { padding-bottom: 10rem; }
+@media (max-width: 480px) { .player-frame { width: 7.5rem; } }
+.gem {
+  display: inline-block; font-size: .75rem; color: var(--label); border: 1px solid var(--label);
+  border-radius: 999px; padding: 0 .5rem; margin-left: .25rem; vertical-align: .1em; white-space: nowrap;
+}
+.search {
+  display: flex; align-items: center; gap: .5rem; flex-wrap: wrap;
+  background: var(--surface); border: 1px solid var(--line); border-radius: .6rem;
+  padding: .6rem .6rem .6rem 1rem; margin-bottom: 1rem;
+}
+.search span { flex: 1 1 12rem; }
+.also { color: var(--muted); font-size: .92rem; margin: 0 0 1.25rem; }
+.note { color: var(--muted); font-size: .82rem; margin-top: 1.5rem; }
+
+.likes-list { list-style: none; padding: 0; margin: 0; }
+.likes-list li {
+  display: grid; grid-template-columns: 1rem 1fr auto; gap: .9rem; align-items: center;
+  padding: 1rem 0; border-bottom: 1px solid var(--line);
+}
+.dot { width: 1rem; height: 1rem; border-radius: 50%; }
+.likes-list .name { font-size: 1.25rem; display: block; line-height: 1.2; }
+.likes-list .meta { color: var(--muted); font-size: .88rem; }
+.empty { color: var(--muted); padding: 2rem 0; }
+[hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <h1 class="display">오늘은 뭘 들을까</h1>
+  <p class="lede">날씨, 기분, 시간, 하는 일을 고르면 지금 어울리는 음악 장르를 골라드려요.</p>
+
+  <nav class="tabs">
+    <a href="#pick" id="tab-pick">추천받기</a>
+    <a href="#likes" id="tab-likes">좋아요 목록 <span class="count" id="like-count"></span></a>
+  </nav>
+
+  <section id="view-pick">
+    <fieldset><legend>바깥 날씨는?</legend><div class="chips" data-key="weather"></div></fieldset>
+    <fieldset><legend>지금 기분은?</legend><div class="chips" data-key="mood"></div></fieldset>
+    <fieldset><legend>지금 시간대는?</legend><div class="chips" data-key="time"></div></fieldset>
+    <fieldset><legend>지금 뭐 하고 있어요?</legend><div class="chips" data-key="act"></div></fieldset>
+    <fieldset><legend>취향</legend><div class="chips"><button class="chip" type="button" id="kpop" aria-pressed="true">🇰🇷 케이팝 많이</button></div></fieldset>
+
+    <div class="go">
+      <button class="btn" id="pick" disabled>장르 추천받기</button>
+      <span class="hint" id="hint"></span>
+    </div>
+
+    <section class="result" id="result" aria-live="polite">
+      <div class="disc-wrap"><div class="disc" id="disc"></div></div>
+      <div>
+        <p class="situ" id="situ"></p>
+        <div class="genre-row">
+          <h2 class="genre display" id="genre"></h2>
+          <button class="like" id="like" aria-pressed="false">♡ 좋아요</button>
+        </div>
+        <p class="reason" id="reason"></p>
+        <p class="desc" id="desc"></p>
+        <h3>이런 곡부터 들어보세요</h3>
+        <ul class="picks" id="picks"></ul>
+        <button class="btn ghost small" id="more" style="margin:-.5rem 0 1.25rem">다른 곡 보기</button>
+        <div class="search">
+          <span>검색해볼 말: <strong id="kw"></strong></span>
+          <button class="btn ghost small" id="copy">복사하기</button>
+        </div>
+        <p class="also" id="also"></p>
+        <button class="btn ghost" id="again">다른 장르 보기</button>
+      </div>
+    </section>
+  </section>
+
+  <section id="view-likes" hidden>
+    <ul class="likes-list" id="likes-list"></ul>
+    <p class="empty" id="likes-empty">아직 좋아요한 장르가 없어요. 추천받기에서 마음에 드는 장르에 ♡를 눌러보세요.</p>
+  </section>
+
+  <div class="player" id="player" hidden>
+    <div class="player-frame" id="player-frame"></div>
+    <div class="player-info">
+      <strong id="player-title"></strong>
+      <span class="player-msg" id="player-msg"></span>
+      <a id="player-yt" target="_blank" rel="noopener">유튜브에서 열기</a>
+    </div>
+    <button class="btn ghost small" id="player-close" aria-label="플레이어 닫기">닫기</button>
+  </div>
+
+  <p class="note">좋아요 목록은 지금 쓰는 브라우저에만 저장돼요. 다른 기기나 다른 브라우저에서는 보이지 않아요.</p>
+</main>
+
+<script>
+const OPTIONS = {
+  weather: [
+    { id: "sun",   label: "☀️ 맑음",   adj: "맑은 날",   bg: ["#E3EEF7", "#14202B"] },
+    { id: "cloud", label: "☁️ 흐림",   adj: "흐린 날",   bg: ["#DDE1E5", "#161A1F"] },
+    { id: "rain",  label: "🌧️ 비",     adj: "비 오는 날", bg: ["#D3DCE4", "#10161D"] },
+    { id: "snow",  label: "❄️ 눈",     adj: "눈 오는 날", bg: ["#EEF2F6", "#171C22"] },
+    { id: "hot",   label: "🔥 더움",   adj: "더운 날",   bg: ["#F4EBDD", "#1E1914"] },
+    { id: "cold",  label: "🍂 쌀쌀함", adj: "쌀쌀한 날", bg: ["#ECE4DC", "#1B1714"] }
+  ],
+  mood: [
+    { id: "up",    label: "신나요",        adj: "신나는 기분" },
+    { id: "calm",  label: "평온해요",      adj: "평온한 기분" },
+    { id: "blue",  label: "울적해요",      adj: "울적한 기분" },
+    { id: "tired", label: "지쳤어요",      adj: "지친 기분" },
+    { id: "flut",  label: "설레요",        adj: "설레는 기분" },
+    { id: "mad",   label: "짜증나요",      adj: "짜증나는 기분" }
+  ],
+  time: [
+    { id: "morning", label: "🌅 아침", adj: "아침" },
+    { id: "day",     label: "🌤️ 낮",   adj: "낮" },
+    { id: "evening", label: "🌇 저녁", adj: "저녁" },
+    { id: "night",   label: "🌙 밤",   adj: "밤" }
+  ],
+  act: [
+    { id: "study",   label: "📚 공부·작업", adj: "공부할 때" },
+    { id: "workout", label: "🏃 운동",      adj: "운동할 때" },
+    { id: "commute", label: "🚌 이동 중",   adj: "이동할 때" },
+    { id: "rest",    label: "🛋️ 휴식",      adj: "쉴 때" }
+  ]
+};
+
+// 조건마다 ‘왜 어울리는지’ 한 줄
+const REASONS = {
+  weather: {
+    sun: "맑은 날의 밝은 공기와 잘 어울리는 경쾌함이 있어요.",
+    cloud: "흐린 하늘처럼 차분하게 가라앉은 분위기가 잘 맞아요.",
+    rain: "빗소리와 자연스럽게 섞이는 차분한 소리예요.",
+    snow: "눈 내리는 풍경처럼 조용하고 맑은 느낌을 줘요.",
+    hot: "더위를 한결 가볍게 느끼게 해주는 산뜻한 리듬이에요.",
+    cold: "쌀쌀한 날씨에 마음을 따뜻하게 데워주는 소리예요."
+  },
+  mood: {
+    up: "올라간 텐션을 그대로 이어가기 좋은 에너지가 있어요.",
+    calm: "지금의 평온함을 깨지 않고 부드럽게 감싸줘요.",
+    blue: "울적한 마음을 억지로 밀어내지 않고 곁에 있어줘요.",
+    tired: "지친 몸과 머리를 천천히 풀어주는 템포예요.",
+    flut: "설레는 마음에 잔잔한 반짝임을 더해줘요.",
+    mad: "답답한 기분을 소리로 시원하게 털어내기 좋아요."
+  },
+  time: {
+    morning: "아침을 기분 좋게 깨워주는 흐름이에요.",
+    day: "한낮의 활기와 잘 맞는 템포예요.",
+    evening: "하루를 정리하는 저녁 분위기와 잘 어울려요.",
+    night: "밤의 고요함 속에서 더 깊게 들리는 소리예요."
+  },
+  act: {
+    study: "가사나 리듬이 집중을 방해하지 않아 작업할 때 좋아요.",
+    workout: "일정한 비트가 몸을 계속 움직이게 해줘요.",
+    commute: "창밖 풍경과 함께 들으면 이동 시간이 짧게 느껴져요.",
+    rest: "아무 생각 없이 늘어지기 딱 좋은 소리예요."
+  }
+};
+
+// w 날씨, m 기분, t 시간대, a 하는 일 (가중치 0~3)
+const GENRES = [
+  { name: "디지몬 · 추억의 애니송", color: "#F2A23A", kw: "디지몬 주제가 모음",
+    desc: "어릴 때 TV 앞에서 따라 부르던 디지몬 주제가. 들으면 바로 그때로 돌아가요.",
+    picks: ["와다 코지 – Butter-Fly (디지몬 어드벤처 OP)", "미야자키 아유미 – brave heart (디지몬 어드벤처 진화 테마)", "AiM – I wish (디지몬 어드벤처 ED)", "와다 코지 – Target ~붉은 충격~ (디지몬 어드벤처 02 OP)", "미야자키 아유미 – Break up! (디지몬 어드벤처 02 진화 테마)", "와다 코지 – The Biggest Dreamer (디지몬 테이머즈 OP)", "와다 코지 – FIRE!! (디지몬 프론티어 OP)", "디지몬 어드벤처 한국어 오프닝"],
+    gems: ["와다 코지 – Butter-Fly ~tri. Version~"],
+    w: { sun: 2, hot: 1, cold: 1, cloud: 1 }, m: { up: 3, flut: 2, blue: 2, mad: 1 },
+    t: { day: 2, evening: 2 }, a: { workout: 2, commute: 3 } },
+  { name: "케이팝 댄스", k: true, color: "#E05C8A", kw: "케이팝 신나는 노래",
+    desc: "듣는 순간 텐션이 올라가는 비트와 중독성 있는 후렴.",
+    picks: ["NewJeans – Super Shy", "BTS – Dynamite", "TWICE – TT", "aespa – Supernova", "IVE – LOVE DIVE", "BLACKPINK – 뚜두뚜두", "SEVENTEEN – 손오공", "LE SSERAFIM – ANTIFRAGILE", "(여자)아이들 – 퀸카 (Queencard)", "Stray Kids – 특", "BIGBANG – 뱅뱅뱅", "ILLIT – Magnetic"],
+    gems: ["f(x) – 4 Walls", "이달의 소녀 – Hi High", "오마이걸 – 비밀정원", "우주소녀 – 부탁해"],
+    w: { sun: 3, hot: 2, cold: 1 }, m: { up: 3, flut: 2, mad: 2 },
+    t: { morning: 2, day: 3, evening: 1 }, a: { workout: 3, commute: 2 } },
+  { name: "케이팝 청량", k: true, color: "#3FB6C9", kw: "케이팝 청량 여름 노래",
+    desc: "탄산처럼 톡 쏘는 밝은 멜로디의 케이팝.",
+    picks: ["여자친구 – 시간을 달려서", "Red Velvet – 빨간 맛", "TWICE – Alcohol-Free", "NCT DREAM – 맛 (Hot Sauce)", "SEVENTEEN – 아주 NICE", "TXT – 9와 4분의 3 승강장에서 너를 기다려", "NewJeans – Hype Boy", "IVE – I AM"],
+    gems: ["오마이걸 – 다섯 번째 계절", "fromis_9 – DM", "이달의 소녀 – Butterfly"],
+    w: { sun: 3, hot: 3 }, m: { flut: 3, up: 2, calm: 1 },
+    t: { morning: 3, day: 2 }, a: { commute: 3, workout: 1, study: 1 } },
+  { name: "K-밴드", k: true, color: "#E07A3F", kw: "청춘 밴드 노래 모음",
+    desc: "기타와 드럼이 끌고 가는, 청춘 영화 같은 한국 밴드 음악.",
+    picks: ["DAY6 – 예뻤어", "DAY6 – 한 페이지가 될 수 있게", "QWER – 고민중독", "LUCY – 개화", "잔나비 – 주저하는 연인들을 위해", "너드커넥션 – 좋은 밤 좋은 꿈", "혁오 – TOMBOY", "검정치마 – EVERYTHING"],
+    gems: ["쏜애플 – 시퍼런 봄", "새소년 – 난춘", "한로로 – 입춘"],
+    w: { cold: 3, sun: 2, cloud: 2 }, m: { flut: 3, up: 2, blue: 2 },
+    t: { evening: 3, night: 2 }, a: { commute: 3, rest: 1 } },
+  { name: "K-힙합", k: true, color: "#6B6F3A", kw: "국힙 명곡 모음",
+    desc: "리듬 위에 말맛이 살아 있는 한국 힙합.",
+    picks: ["에픽하이 – 우산", "지코 – 아무노래", "다이나믹 듀오 – 출첵", "빈지노 – Aqua Man", "에픽하이 – Love Love Love", "자이언티 – 양화대교"],
+    gems: ["빈지노 – Dali, Van, Picasso", "에픽하이 – 빈차 (feat. 오혁)", "넉살 – 밥 한 끼 해요"],
+    w: { rain: 2, cloud: 2, cold: 1, sun: 1 }, m: { mad: 3, up: 2, blue: 1 },
+    t: { night: 2, day: 2 }, a: { workout: 2, commute: 3 } },
+  { name: "감성 발라드", k: true, color: "#8EA3C7", kw: "감성 발라드 모음",
+    desc: "마음껏 감정에 잠길 수 있게 해주는 노래.",
+    picks: ["아이유 – 밤편지", "폴킴 – 모든 날, 모든 순간", "성시경 – 거리에서", "이소라 – 바람이 분다", "김범수 – 보고싶다", "에일리 – 첫눈처럼 너에게 가겠다", "태연 – 사계", "멜로망스 – 선물"],
+    gems: ["이소라 – Track 9", "정승환 – 눈사람"],
+    w: { rain: 3, snow: 3, cold: 2, cloud: 1 }, m: { blue: 3, tired: 1, flut: 1 },
+    t: { night: 3, evening: 2 }, a: { rest: 2, commute: 2 } },
+  { name: "R&B · 소울", color: "#7A5A8C", kw: "감성 R&B 플레이리스트",
+    desc: "그루브 있는 리듬과 따뜻한 보컬이 어우러지는 음악.",
+    picks: ["DEAN – instagram", "크러쉬 – 잊어버리지마 (feat. 태연)", "헤이즈 – 비도 오고 그래서", "백예린 – 우주를 건너", "Daniel Caesar – Best Part", "H.E.R. – Focus"],
+    gems: ["백예린 – Bye bye my blue", "수란 – 오늘 취하면", "죠지 – 바라봐줘요"],
+    w: { cloud: 2, rain: 3, cold: 1 }, m: { flut: 3, calm: 2, blue: 2 },
+    t: { night: 3, evening: 2 }, a: { rest: 3, commute: 1 } },
+  { name: "어쿠스틱 포크", color: "#9AAE6B", kw: "어쿠스틱 잔잔한 노래",
+    desc: "기타 한 대와 담백한 목소리로 마음을 조용히 다독이는 음악.",
+    picks: ["옥상달빛 – 수고했어, 오늘도", "김광석 – 서른 즈음에", "10cm – 봄이 좋냐??", "어쿠스틱 콜라보 – 묘해, 너와", "Bon Iver – Skinny Love", "Damien Rice – The Blower's Daughter"],
+    gems: ["카더가든 – 나무", "스텔라장 – 빨래"],
+    w: { cold: 3, cloud: 2, sun: 1, snow: 1 }, m: { calm: 2, blue: 2, tired: 3 },
+    t: { morning: 2, evening: 2 }, a: { rest: 2, commute: 2, study: 1 } },
+  { name: "시티팝", color: "#E58FA8", kw: "시티팝 플레이리스트",
+    desc: "반짝이는 신스와 경쾌한 베이스로 해 질 녘 드라이브 기분을 내는 음악.",
+    picks: ["유키카 – 서울여자", "김현철 – 오랜만에", "빛과 소금 – 샴푸의 요정", "Mariya Takeuchi – Plastic Love", "Tatsuro Yamashita – Ride on Time"],
+    gems: ["김현철 – 춘천 가는 기차", "박문치 – 널 좋아하나봐", "나미 – 빙글빙글"],
+    w: { sun: 3, hot: 2 }, m: { flut: 3, up: 2, calm: 1 },
+    t: { evening: 3, day: 2 }, a: { commute: 3, rest: 1 } },
+  { name: "로파이 힙합", color: "#8C7AB8", kw: "lofi hip hop 플레이리스트",
+    desc: "느슨한 비트와 잔잔한 노이즈가 배경을 채워주는 음악.",
+    picks: ["Nujabes – Feather", "Nujabes – Aruarian Dance", "Jinsang – Solitude", "Idealism – Snowfall", "백예린 – Square (2017)"],
+    gems: ["Kudasai – The Girl I Haven't Met", "Tomppabeats – Monday Loop"],
+    w: { rain: 3, cloud: 2, snow: 2, cold: 1 }, m: { calm: 2, tired: 2, blue: 1 },
+    t: { night: 3, evening: 2 }, a: { study: 3, rest: 2 } },
+  { name: "재즈", color: "#B88A4A", kw: "비 오는 날 재즈",
+    desc: "피아노와 색소폰이 공간을 부드럽게 채우는 음악.",
+    picks: ["Bill Evans – Waltz for Debby", "Chet Baker – My Funny Valentine", "Norah Jones – Don't Know Why", "Dave Brubeck – Take Five", "Miles Davis – So What"],
+    gems: ["Ahmad Jamal – Poinciana", "Vince Guaraldi Trio – Linus and Lucy"],
+    w: { rain: 3, cloud: 2, cold: 2, snow: 1 }, m: { calm: 3, blue: 2, tired: 1 },
+    t: { evening: 3, night: 3, morning: 1 }, a: { rest: 3, study: 2 } },
+  { name: "보사노바", color: "#4FA3A0", kw: "bossa nova cafe music",
+    desc: "살랑이는 리듬과 나른한 기타가 매력인 브라질 음악.",
+    picks: ["Stan Getz & João Gilberto – The Girl from Ipanema", "Antônio Carlos Jobim – Wave", "João Gilberto – Desafinado", "Sérgio Mendes & Brasil '66 – Mas Que Nada"],
+    gems: ["Marcos Valle – Samba de Verão"],
+    w: { hot: 3, sun: 2, rain: 1 }, m: { calm: 3, tired: 1, flut: 1 },
+    t: { morning: 3, day: 2 }, a: { study: 2, rest: 2 } },
+  { name: "하우스 · EDM", color: "#4F7FD8", kw: "house music mix",
+    desc: "쉬지 않고 이어지는 4박 리듬의 전자 음악.",
+    picks: ["Daft Punk – One More Time", "Avicii – Levels", "Calvin Harris – Summer", "Avicii – Wake Me Up"],
+    gems: ["Porter Robinson & Madeon – Shelter", "Kygo – Firestone"],
+    w: { hot: 3, sun: 2 }, m: { up: 3, mad: 2 },
+    t: { day: 2, night: 2 }, a: { workout: 3, study: 1 } },
+  { name: "클래식 피아노", color: "#A9B3BE", kw: "classical piano for studying",
+    desc: "가사 없이 흐르는 피아노 선율.",
+    picks: ["Debussy – Clair de Lune", "Chopin – Nocturne Op. 9 No. 2", "Erik Satie – Gymnopédie No. 1", "Beethoven – Moonlight Sonata 1악장", "이루마 – River Flows in You"],
+    gems: ["Ólafur Arnalds – saman", "Nils Frahm – Says"],
+    w: { snow: 3, rain: 2, cloud: 1 }, m: { calm: 2, blue: 1, tired: 1 },
+    t: { morning: 2, night: 2 }, a: { study: 3, rest: 2 } },
+  { name: "앰비언트", color: "#6E9BB5", kw: "ambient music relax",
+    desc: "공기처럼 깔리는 소리로 생각을 비워주는 음악.",
+    picks: ["Brian Eno – An Ending (Ascent)", "Tycho – Awake", "Hiroshi Yoshimura – Water Copy"],
+    gems: ["Midori Takada – Mr. Henri Rousseau's Dream"],
+    w: { snow: 3, cloud: 2, rain: 2 }, m: { tired: 3, mad: 2, calm: 1 },
+    t: { night: 3, morning: 1 }, a: { study: 3, rest: 3 } },
+  { name: "펑크 · 디스코", color: "#E3A93C", kw: "funk disco playlist",
+    desc: "통통 튀는 베이스와 리듬 기타로 몸이 들썩이는 음악.",
+    picks: ["Earth, Wind & Fire – September", "Mark Ronson ft. Bruno Mars – Uptown Funk", "Chic – Le Freak", "윤수일 – 아파트"],
+    gems: ["Vulfpeck – Dean Town", "김완선 – 리듬 속의 그 춤을"],
+    w: { sun: 2, hot: 2 }, m: { up: 3, flut: 2, mad: 1 },
+    t: { evening: 2, day: 2 }, a: { workout: 2, commute: 2 } },
+  { name: "록 · 얼터너티브", color: "#B0423F", kw: "alternative rock playlist",
+    desc: "시원하게 터지는 드럼과 기타가 중심인 음악.",
+    picks: ["Foo Fighters – Everlong", "Nirvana – Smells Like Teen Spirit", "넬 – 기억을 걷는 시간", "실리카겔 – NO PAIN", "The Strokes – Last Nite", "Arctic Monkeys – Do I Wanna Know?"],
+    gems: ["델리스파이스 – 챠우챠우", "국카스텐 – 거울"],
+    w: { cold: 2, cloud: 1, hot: 1, rain: 1 }, m: { mad: 3, up: 2 },
+    t: { day: 2, night: 1 }, a: { workout: 3, commute: 2 } },
+  { name: "레게", color: "#5E9E5A", kw: "reggae chill vibes",
+    desc: "느긋하게 튕기는 엇박자가 매력인 음악.",
+    picks: ["Bob Marley – Three Little Birds", "UB40 – Red Red Wine", "스컬 & 하하 – 부산 바캉스"],
+    gems: ["Toots & the Maytals – Pressure Drop"],
+    w: { hot: 3, sun: 2 }, m: { calm: 2, tired: 2, mad: 1 },
+    t: { day: 3, evening: 1 }, a: { rest: 2, commute: 1 } }
+];
+
+const KEYS = ["weather", "mood", "time", "act"];
+const LABEL_KEY = { weather: "w", mood: "m", time: "t", act: "a" };
+const STORE = "genre-likes-v1";
+const state = { kpop: true, weather: null, mood: null, time: null, act: null, current: null, lastName: null };
+const $ = id => document.getElementById(id);
+
+/* ---------- 저장소 ---------- */
+function loadLikes() {
+  try { const v = JSON.parse(localStorage.getItem(STORE)); return Array.isArray(v) ? v : []; }
+  catch (e) { return []; }
+}
+let likes = loadLikes();
+function saveLikes() {
+  try { localStorage.setItem(STORE, JSON.stringify(likes)); } catch (e) {}
+  renderLikes();
+}
+
+/* ---------- 선택지 ---------- */
+document.querySelectorAll(".chips").forEach(el => {
+  const key = el.dataset.key;
+  OPTIONS[key].forEach(item => {
+    const b = document.createElement("button");
+    b.className = "chip"; b.type = "button"; b.textContent = item.label;
+    b.dataset.id = item.id; b.setAttribute("aria-pressed", "false");
+    b.addEventListener("click", () => select(key, item.id));
+    el.appendChild(b);
+  });
+});
+function select(key, id) {
+  state[key] = id;
+  document.querySelectorAll(`.chips[data-key="${key}"] .chip`)
+    .forEach(c => c.setAttribute("aria-pressed", String(c.dataset.id === id)));
+  if (key === "weather") tint();
+  updateButton();
+}
+// 지금 시각으로 시간대 미리 골라두기
+(function presetTime() {
+  const h = new Date().getHours();
+  select("time", h >= 5 && h < 11 ? "morning" : h < 17 ? "day" : h < 21 ? "evening" : "night");
+})();
+
+function isDark() {
+  const t = document.documentElement.getAttribute("data-theme");
+  return t ? t === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+}
+function tint() {
+  const w = OPTIONS.weather.find(x => x.id === state.weather);
+  if (w) document.body.style.backgroundColor = w.bg[isDark() ? 1 : 0];
+}
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", tint);
+
+function updateButton() {
+  const names = { weather: "날씨", mood: "기분", time: "시간대", act: "하는 일" };
+  const missing = KEYS.filter(k => !state[k]).map(k => names[k]);
+  $("pick").disabled = missing.length > 0;
+  $("hint").textContent = missing.length ? `${missing.join(", ")}을(를) 골라주세요.` : "";
+}
+
+/* ---------- 추천 ---------- */
+function score(g) {
+  return (g.w[state.weather] || 0) * 1.0 + (g.m[state.mood] || 0) * 1.3 +
+         (g.t[state.time] || 0) * 0.7 + (g.a[state.act] || 0) * 1.1 +
+         (state.kpop && g.k ? 2.2 : 0);
+}
+function ranked() {
+  return GENRES.map(g => ({ g, s: score(g) + Math.random() * 0.9 }))
+    .sort((a, b) => b.s - a.s).map(x => x.g);
+}
+function bestReason(g) {
+  const weights = { weather: 1.0, mood: 1.3, time: 0.7, act: 1.1 };
+  let best = "mood", bestVal = -1;
+  KEYS.forEach(k => {
+    const v = (g[LABEL_KEY[k]][state[k]] || 0) * weights[k];
+    if (v > bestVal) { bestVal = v; best = k; }
+  });
+  return REASONS[best][state[best]];
+}
+function situation() {
+  const f = k => OPTIONS[k].find(x => x.id === state[k]).adj;
+  return `${f("weather")} ${f("time")}, ${f("mood")}으로 ${f("act")}`;
+}
+function recommend() {
+  let list = ranked();
+  if (list[0].name === state.lastName) list = [list[1], list[0], ...list.slice(2)];
+  const g = list[0];
+  state.current = g; state.lastName = g.name;
+
+  $("situ").textContent = situation();
+  $("genre").textContent = g.name;
+  $("reason").textContent = bestReason(g);
+  $("desc").textContent = g.desc;
+  renderPicks(g);
+  $("kw").textContent = g.kw;
+  $("copy").textContent = "복사하기";
+  $("also").textContent = `이것도 어울려요: ${list[1].name}, ${list[2].name}`;
+  document.documentElement.style.setProperty("--label", g.color);
+  updateLikeButton();
+
+  const r = $("result");
+  r.classList.add("show");
+  $("disc").classList.add("spin");
+  r.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+}
+
+function renderPicks(g) {
+  const ul = $("picks"); ul.innerHTML = "";
+  const shuffle = a => [...a].sort(() => Math.random() - 0.5);
+  const gems = g.gems || [];
+  const chosen = shuffle(g.picks).slice(0, gems.length ? 3 : 4).map(p => ({ p, gem: false }));
+  if (gems.length) chosen.push({ p: shuffle(gems)[0], gem: true });
+  chosen.forEach(({ p, gem }) => {
+    const li = document.createElement("li");
+    const btn = document.createElement("button");
+    btn.type = "button"; btn.className = "song";
+    btn.setAttribute("aria-label", `${p} 재생`);
+    const icon = document.createElement("span"); icon.className = "play-icon"; icon.textContent = "▶";
+    const t = document.createElement("span"); t.textContent = p;
+    if (gem) { const b = document.createElement("span"); b.className = "gem"; b.textContent = "숨은 명곡"; t.append(" ", b); }
+    btn.append(icon, t);
+    btn.addEventListener("click", () => playSong(p));
+    li.appendChild(btn); ul.appendChild(li);
+  });
+  $("more").hidden = g.picks.length + gems.length <= 4;
+}
+
+/* ---------- 재생 ---------- */
+// 유튜브 API 키를 넣으면 사이트 안에서 바로 재생돼요. 비워두면 유튜브 검색 창이 새로 열려요.
+const YT_API_KEY = "";
+const ID_CACHE = "genre-video-ids-v1";
+function searchQuery(p) { return p.replace("–", "").replace(/[()~]/g, " ").replace(/\s+/g, " ").trim(); }
+function searchUrl(p) { return "https://www.youtube.com/results?search_query=" + encodeURIComponent(searchQuery(p)); }
+function loadIds() { try { return JSON.parse(localStorage.getItem(ID_CACHE)) || {}; } catch (e) { return {}; } }
+function saveId(p, id) { const c = loadIds(); c[p] = id; try { localStorage.setItem(ID_CACHE, JSON.stringify(c)); } catch (e) {} }
+
+async function playSong(p) {
+  if (!YT_API_KEY) { window.open(searchUrl(p), "_blank", "noopener"); return; }
+  showPlayer(p, null, "불러오는 중…");
+  try {
+    let id = loadIds()[p];
+    if (!id) {
+      const url = "https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoEmbeddable=true&maxResults=1&q="
+        + encodeURIComponent(searchQuery(p)) + "&key=" + YT_API_KEY;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("api");
+      const data = await res.json();
+      id = data.items && data.items[0] && data.items[0].id.videoId;
+      if (!id) throw new Error("none");
+      saveId(p, id);
+    }
+    showPlayer(p, id, "");
+  } catch (e) {
+    showPlayer(p, null, "여기서 재생할 수 없는 곡이에요. 유튜브에서 열어보세요.");
+  }
+}
+function showPlayer(p, id, msg) {
+  $("player").hidden = false;
+  document.body.classList.add("has-player");
+  $("player-title").textContent = p;
+  $("player-msg").textContent = msg;
+  $("player-yt").href = searchUrl(p);
+  $("player-frame").innerHTML = id
+    ? `<iframe src="https://www.youtube.com/embed/${id}?autoplay=1&playsinline=1" title="${p.replace(/"/g, "&quot;")}" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>`
+    : "";
+}
+function closePlayer() {
+  $("player").hidden = true;
+  $("player-frame").innerHTML = "";
+  document.body.classList.remove("has-player");
+}
+
+/* ---------- 좋아요 ---------- */
+function isLiked(name) { return likes.some(l => l.name === name); }
+function updateLikeButton() {
+  const on = state.current && isLiked(state.current.name);
+  $("like").setAttribute("aria-pressed", String(!!on));
+  $("like").textContent = on ? "♥ 좋아요함" : "♡ 좋아요";
+}
+$("like").addEventListener("click", () => {
+  const g = state.current; if (!g) return;
+  if (isLiked(g.name)) likes = likes.filter(l => l.name !== g.name);
+  else likes.unshift({ name: g.name, color: g.color, when: situation(), date: new Date().toISOString() });
+  saveLikes(); updateLikeButton();
+});
+
+function renderLikes() {
+  $("like-count").textContent = likes.length ? `♥ ${likes.length}` : "";
+  const ul = $("likes-list"); ul.innerHTML = "";
+  $("likes-empty").hidden = likes.length > 0;
+  likes.forEach(l => {
+    const g = GENRES.find(x => x.name === l.name);
+    const li = document.createElement("li");
+    const dot = document.createElement("span"); dot.className = "dot"; dot.style.background = l.color;
+    const info = document.createElement("div");
+    const name = document.createElement("span"); name.className = "name display"; name.textContent = l.name;
+    const d = new Date(l.date);
+    const meta = document.createElement("span"); meta.className = "meta";
+    meta.textContent = `${d.getMonth() + 1}월 ${d.getDate()}일 · ${l.when}` + (g ? ` · ${g.picks[0]}` : "");
+    info.append(name, meta);
+    const del = document.createElement("button");
+    del.className = "btn ghost small"; del.textContent = "삭제";
+    del.setAttribute("aria-label", `${l.name} 좋아요 삭제`);
+    del.addEventListener("click", () => { likes = likes.filter(x => x.name !== l.name); saveLikes(); updateLikeButton(); });
+    li.append(dot, info, del);
+    ul.appendChild(li);
+  });
+}
+
+/* ---------- 탭 ---------- */
+function route() {
+  const onLikes = location.hash === "#likes";
+  $("view-pick").hidden = onLikes;
+  $("view-likes").hidden = !onLikes;
+  $("tab-pick").toggleAttribute("aria-current", !onLikes);
+  $("tab-likes").toggleAttribute("aria-current", onLikes);
+  if (!onLikes) $("tab-pick").setAttribute("aria-current", "page"); else $("tab-likes").setAttribute("aria-current", "page");
+  if (onLikes) renderLikes();
+}
+window.addEventListener("hashchange", route);
+
+$("kpop").addEventListener("click", () => {
+  state.kpop = !state.kpop;
+  $("kpop").setAttribute("aria-pressed", String(state.kpop));
+});
+$("pick").addEventListener("click", recommend);
+$("again").addEventListener("click", recommend);
+$("player-close").addEventListener("click", closePlayer);
+$("more").addEventListener("click", () => state.current && renderPicks(state.current));
+$("copy").addEventListener("click", async () => {
+  try { await navigator.clipboard.writeText($("kw").textContent); $("copy").textContent = "복사됨"; }
+  catch (e) {
+    const r = document.createRange(); r.selectNodeContents($("kw"));
+    const s = getSelection(); s.removeAllRanges(); s.addRange(r);
+    $("copy").textContent = "선택됨, 직접 복사하세요";
+  }
+});
+
+updateButton(); renderLikes(); route();
+</script>
+</body>
+</html>
